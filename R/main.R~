@@ -1,0 +1,49 @@
+
+## {{{ dependencies }}}
+
+if (!require("msm")) install.packages('msm', repos='http://cran.us.r-project.org'); library(msm)
+if (!require("dclone")) install.packages('dclone', repos='http://cran.us.r-project.org'); library(dclone)
+if (!require("rjags")) install.packages('rjags', repos='http://cran.us.r-project.org'); library(rjags)
+if (!require("MASS")) install.packages('MASS', repos='http://cran.us.r-project.org'); library(MASS)
+if (!require("MCMCpack")) install.packages('MCMCpack', repos='http://cran.us.r-project.org'); library(MCMCpack)
+if (!require("LCA")) install.packages('LCA', repos='http://cran.us.r-project.org'); library(LCA)
+if (!require("magrittr")) install.packages('magrittr', repos='http://cran.us.r-project.org'); library(magrittr)
+if (!require("dplyr")) install.packages('dplyr', repos='http://cran.us.r-project.org'); library(dplyr)
+if (!require("here")) install.packages('here', repos='http://cran.us.r-project.org'); library(here)
+if (!require("rprojroot")) install.packages('rprojroot', repos='http://cran.us.r-project.org'); library(rprojroot)
+source('main-src.R')
+
+## }}}
+
+## {{{ simulation and estimation }}}
+
+model    = 'bl'
+model    = 'rn_no_alpha'
+
+## simulating data and parameters
+## ------------------------------
+sim_data = simulateData(n=1000, nCov=2, model=model)
+data     = sim_data$data
+head(data)
+
+## mcmc
+## ----
+if (model=='bl') {          parameters = c('pi', 'beta', 'gamma', "zeta.o", "zeta.a", "chi.a","chi.a" )}
+if (model=='rn' |
+    model=='rn_no_alpha') { parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota", "mu.iota.alpha", "mu.chi","mu.chi.alpha","sigma.iota", "sigma.iota.alpha", "sigma.tau", "sigma.nu" )}
+mcmc       = list(burnin=5, n.adapt=10, n.samples.per.chain=10, n.chains=4, inits=sim_data$parameters)
+## mcmc       = list(burnin=5000, n.adapt=1000, n.samples.per.chain=10000, n.chains=4, inits=sim_data$parameters)
+
+## samples
+## -------
+samples    = eforensics(w ~.-a, a ~ .-w,  data=data, model=model, mcmc=mcmc, parameters=parameters)
+
+## summaries
+## ---------
+str(samples)
+samples$stat$summary[[1]]
+round(sim_data$parameter,4)
+
+
+## }}}
+

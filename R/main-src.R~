@@ -1,0 +1,267 @@
+
+## {{{ functions }}}
+
+simulate_bl <- function(n, nCov, model){
+    ## parameters
+    ## ----------
+    k = .7
+    d = nCov
+    alpha            = NA
+    pi               = rdirichlet(1, c(1,1,1))
+    mu.iota          = runif(1,0,k)
+    mu.iota.alpha    = runif(1,0,k)
+    mu.chi           = runif(1,k,1)
+    mu.chi.alpha     = runif(1,k,1)
+    ## sigma.iota       = runif(1,0,.1)
+    ## sigma.iota.alpha = runif(1,0,.1)
+    ## sigma.chi        = 0.075
+    ## sigma.chi.alpha  = 0.075
+    ## sigma.tau        = runif(1, 0,.1)
+    ## sigma.nu         = runif(1, 0,.1)
+    beta.tau           = runif(n=nCov+1, -3,3)
+    beta.nu            = runif(n=nCov+1, -3,3)
+    if (d>0) {
+        x        = as.data.frame(mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        names(x) = paste0('x',1:d, sep='')
+        mu.tau   = as.matrix(cbind(1,x)) %*% beta.tau
+        mu.nu    = as.matrix(cbind(1,x)) %*% beta.nu
+    }else{
+        mu.tau   = rep(1,n) * beta.tau
+        mu.nu    = rep(1,n) * beta.nu
+    }
+    p.tau    = 1/(1+exp(-mu.tau))
+    p.nu     = 1/(1+exp(-mu.nu))
+    ## vector with true parameters
+    true.theta = unlist(list(n=n, pi=pi,
+                             beta.tau      = beta.tau,
+                             beta.nu       = beta.nu,
+                             ## p.tau         = p.tau,
+                             ## p.nu          = p.nu,
+                             mu.iota       = mu.iota      , 
+                             mu.iota.alpha = mu.iota.alpha, 
+                             mu.chi        = mu.chi       , 
+                             mu.chi.alpha  = mu.chi.alpha , 
+                             alpha         = alpha))
+    
+    ## data
+    ## ----
+    ## latent
+    N  = sample(500:100, n, replace=T)
+    z  = sample(c(1,2,3), n, prob=pi, replace=T)
+    tau=nu=iota=chi=iota.alpha=chi.alpha=NA
+    for (i in 1:n)
+    {
+        tau[i]        = rbinom(1, N[i], prob=p.tau[i])/N[i]
+        nu[i]         = rbinom(1, N[i], prob=p.nu[i])/N[i]
+        iota[i]       = rbinom(1, N[i], mu.iota)/N[i]
+        chi[i]        = rbinom(1, N[i], mu.chi)/N[i]
+        iota.alpha[i] = rbinom(1, N[i], mu.iota.alpha)/N[i]
+        chi.alpha[i]  = rbinom(1, N[i], mu.chi.alpha)/N[i]
+    }
+    latent     = list(z=z,tau=tau,nu=nu,iota=iota,chi=chi,iota.alpha=iota.alpha,chi.alpha=chi.alpha)
+    ## observed
+    ## --------
+    a = N * ((z==1) * (1 - tau) +
+             (z==2) * (1 - tau) * (1 - iota) +
+             (z==3) * (1 - tau) * (1 - chi) )
+    w = N * ((z==1) * (tau * nu) +
+             (z==2) * (tau*nu + iota*(1-tau) + iota.alpha*(tau)*(1-nu)  ) +
+             (z==3) * (tau*nu + chi*(1-tau)  + chi.alpha *(tau)*(1-nu)  ) )
+    ## rounding w and a
+    w = round(w,0)
+    a = round(a,0)
+    a = a + (N-w-a)
+    if (d>0) {
+        data = data.frame(cbind(w = w, a = a, N = N, x))
+    }else{
+        data = data.frame(cbind(w = w, a = a, N = N))
+    }
+    return(list(parameters=true.theta, latent=latent, data=data))
+}
+simulate_rn_no_alpha <- function(n, nCov, model){
+    ## parameters
+    ## ----------
+    k = .7
+    d = nCov
+    alpha            = NA
+    pi               = rdirichlet(1, c(1,1,1))
+    mu.iota          = runif(1,0,k)
+    mu.iota.alpha    = runif(1,0,k)
+    mu.chi           = runif(1,k,1)
+    mu.chi.alpha     = runif(1,k,1)
+    sigma.iota       = runif(1,0,.1)
+    sigma.iota.alpha = runif(1,0,.1)
+    sigma.chi        = 0.075
+    sigma.chi.alpha  = 0.075
+    sigma.tau        = runif(1, 0,.1)
+    sigma.nu         = runif(1, 0,.1)
+    mu.tau           = rnorm(n,.5,.1)
+    mu.nu            = rnorm(n,.5,.1)
+    if (d>0) {
+        x = as.data.frame(mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        names(x) = paste0('x',1:d, sep='')
+        beta.tau         = lm(mu.tau~.,data=x)$coeff
+        beta.nu          = lm(mu.nu~.,data=x)$coeff
+    }else{
+        beta.tau         = mu.tau[1]
+        beta.nu          = mu.nu[1]
+    }
+    ## vector with true parameters
+    true.theta=unlist(list(n=n, pi=pi, sigma.tau=sigma.tau, sigma.nu=sigma.nu, beta.tau=beta.tau, beta.nu=beta.nu,
+                           mu.iota       = mu.iota      , sigma.iota       = sigma.iota, 
+                           mu.iota.alpha = mu.iota.alpha, sigma.iota.alpha = sigma.iota.alpha,
+                           mu.chi        = mu.chi       , sigma.chi        = sigma.chi, 
+                           mu.chi.alpha  = mu.chi.alpha , sigma.chi.alpha  = sigma.chi.alpha,
+                           alpha=alpha))
+
+    ## data
+    ## ----
+    ## latent
+    z          = sample(c(1,2,3), n, prob=pi, replace=T)
+    tau        = rtnorm(n, mu.tau,  sigma.tau,   0,1)
+    nu         = rtnorm(n, mu.nu,   sigma.nu,    0,1)
+    iota       = rtnorm(n, mu.iota, sigma.iota,  0,1)
+    chi        = rtnorm(n, mu.chi,  sigma.chi ,  0,1)
+    iota.alpha = rtnorm(n, mu.iota.alpha, sigma.iota.alpha,  0,1)
+    chi.alpha  = rtnorm(n, mu.chi.alpha,  sigma.chi.alpha ,  0,1)
+    latent     = list(z=z,tau=tau,nu=nu,iota=iota,chi=chi,iota.alpha=iota.alpha,chi.alpha=chi.alpha)
+    ## observed
+    ## --------
+    a = (z==1) * (1 - tau) +
+        (z==2) * (1 - tau) * (1 - iota) +
+        (z==3) * (1 - tau) * (1 - chi)
+    w = (z==1) * (tau * nu) +
+        (z==2) * (tau*nu + iota*(1-tau) + iota.alpha*(tau)*(1-nu)  ) +
+        (z==3) * (tau*nu + chi*(1-tau)  + chi.alpha *(tau)*(1-nu)  )
+    if (d>0) {
+        data = data.frame(cbind(w = w, a = a, x))
+    }else{
+        data = data.frame(cbind(w = w, a = a))
+    }
+
+    ## computing the likelihood
+    ## ------------------------
+    ln.lambda.g.tau.inv <- c()
+    ln.lambda.g.nu.inv  <- c()
+    ln.lambda.neg       <- c()
+    loglik              <- c()
+
+    detJ.a.inv          <- c()
+    detJ.w.inv          <- c()
+    g.tau.inv           <- c()
+    g.nu.inv            <- c()
+    k.tau               <- c()
+    k.nu                <- c()
+    M                   <- 20
+    for(i in 1:n){
+        detJ.a.inv[i] <-  (z[i] == 1) *  1   +
+            (z[i] == 2) * ( 1/(1 - iota[i])  ) +
+            (z[i] == 3) * ( 1/(1 - chi[i])  )
+        detJ.w.inv[i] <-  (z[i] == 1) * ( 1/ (1 - a[i]) ) +
+            (z[i] == 2) * ( (1 - iota[i])/( (1 - iota.alpha[i])*(1 - iota[i] - a[i]) ) ) +
+            (z[i] == 3) * ( (1 - chi[i])/( (1 - chi.alpha[i])*(1 - chi[i] - a[i]) ) ) 
+        g.tau.inv[i] <-   (z[i] == 1) * (1 - a[i] ) +           
+            (z[i] == 2) * (1 - a[i]/(1 - iota[i]) ) +
+            (z[i] == 3) * (1 - a[i]/(1 - chi[i]) ) 
+        g.nu.inv[i] <-
+            (z[i] == 1) * ( w[i]*(1/(1 - a[i])) ) +
+            (z[i] == 2) * ( w[i]*(1/(1 - iota[i] - a[i]))*((1 - iota[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota[i]) / ((1 - iota[i] - a[i])*(1-iota.alpha[i])) ) +
+            (z[i] == 3) * ( w[i]*(1/(1 - chi[i]  - a[i]))*((1 - chi[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi[i])  / ((1 - chi[i]  - a[i])*(1-chi.alpha[i])) )
+        k.tau[i] <-  pnorm(1, mu.tau[i], sigma.tau) - pnorm(0, mu.tau[i], sigma.tau) 
+        k.nu[i]  <-  pnorm(1, mu.nu[i],  sigma.nu)  - pnorm(0, mu.nu[i],  sigma.nu)  
+
+        ln.lambda.g.tau.inv[i] <- log( dnorm(g.tau.inv[i], mu.tau[i], sigma.tau) )  - log(k.tau[i])
+        ln.lambda.g.nu.inv[i]  <- log( dnorm(g.nu.inv[i], mu.nu[i]  , sigma.nu)  )  - log(k.nu[i])
+        ln.lambda.neg[i]       <- - ln.lambda.g.tau.inv[i] - ln.lambda.g.nu.inv[i] + M
+        loglik[i]              <- ppois(0,ln.lambda.neg[i])
+
+    }
+
+    return(list(parameters=true.theta, latent=latent, data=data, lik    = data.frame(loglik=loglik, ln.lambda.neg=ln.lambda.neg,k.tau=k.tau,k.nu=k.nu,z=latent$z)))
+}
+simulateData <- function(n=2000,  nCov=0, model){
+    if(model=='bl')         {return(simulate_bl(n,nCov,model))}
+    if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model))}
+}
+getRegMatrix <- function(func.call, data, weights, formula_number=1){
+    args <- names(func.call)
+    ## creating the dependent variable and the covariates matrix from the fomula 1
+    f = paste0('formula', formula_number, sep='')
+    idx.args  <- match(c(f,  "data", "weights"), args, 0L)
+    func.call <- func.call[c(1L, idx.args)]
+    names(func.call)[names(func.call)==f] = "formula"
+    func.call$drop.unused.levels <- TRUE
+    func.call[[1L]] <- quote(stats::model.frame)
+    func.call[[3]] = quote(data)
+    reg.matrix <- eval(func.call, parent.frame())
+    ## response variable
+    y   <- model.response(reg.matrix, "numeric")
+    ## weights
+    w   <- as.vector(model.weights(reg.matrix))
+    if (!is.null(w) && !is.numeric(w)) stop("'weights' must be a numeric vector")
+    offset <- as.vector(model.offset(func.call))
+    if (!is.null(offset)) {
+        if (length(offset) != NROW(y)) 
+            stop(gettextf("number of offsets is %d, should equal %d (number of observations)", length(offset), NROW(y)), domain = NA)
+    }
+    ## covariates
+    mt1    <- attr(reg.matrix, "terms")
+    if (is.empty.model(mt1)) {
+        x <- matrix(1, ncol=1,nrow=nrow(y))
+        results <- list(coefficients = if (is.matrix(y)) matrix(, 0, 3) else numeric(), residuals = y, fitted.values = 0 * y, weights = w, rank = 0L, df.residual = if (!is.null(w)) sum(w != 0) else if (is.matrix(y)) nrow(y) else length(y))
+        if (!is.null(offset)) {
+            results$fitted.values <- offset
+            results$residuals <- y - offset
+        }
+    } else {
+        x <- model.matrix(mt1, reg.matrix, contrasts)
+    }
+    return(list(y=y, X=x, w=w))
+}
+eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters, na.action="exclude",...){
+    ## ## construct the regression matrices (data.frames) based on the formula provided
+    ## ## -----------------------------------------------------------------------------
+    func.call <- match.call(expand.dots = FALSE)
+    mat     = getRegMatrix(func.call, data, weights, formula_number=1)
+    w       = mat$y
+    Xw      = mat$X
+    weightw = mat$w
+    mat     = getRegMatrix(func.call, data, weights, formula_number=2)
+    a       = mat$y
+    Xa      = mat$X
+    weighta = mat$w
+    if(model == 'bl'){ N = data$N }else{ N = NULL}
+    data    = list(w = w, a = a, Xa = as.matrix(Xa), N = N, Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
+
+    ## Debug/Monitoring message --------------------------
+    msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
+    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.samples.per.chain, '\n'); cat(msg)
+    msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
+    ## ---------------------------------------------------
+
+    ## start parallel process
+    ## -------------------------
+    time.init    = Sys.time()
+    cl.chains    = makePSOCKcluster(4)
+    name         = 'tmp'
+    ## print('compile')
+    sim          = parJagsModel(cl=cl.chains, file=paste0(model,'.jag'), data = data, name=name, inits=mcmc$inits, n.chains=mcmc$n.chains, n.adapt=mcmc$n.adapt)
+    ## print('update')
+    parUpdate(cl = cl.chains, object=name, n.iter=mcmc$burnin)
+    ## print('samples')
+    samples      = parCodaSamples(cl=cl.chains, model=name, variable.names=parameters, n.iter=mcmc$n.samples.per.chain, thin=1)
+
+    ## stop parallelization
+    ## --------------------
+    stopCluster(cl.chains)
+    T.mcmc = Sys.time() - time.init
+
+    ## computing summary
+    ## -----------------
+    summary <- list(summary = summary(samples), HPD = HPDinterval(samples))
+
+    results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
+    return(results)
+}
+
+## }}}
