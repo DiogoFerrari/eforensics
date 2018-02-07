@@ -111,7 +111,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     ## Debug/Monitoring message --------------------------
     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
     ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
-    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.samples.per.chain, '\n'); cat(msg)
+    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
     ## ---------------------------------------------------
 
@@ -120,7 +120,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     time.init    = Sys.time()
     cat('\ncompiling the model...')     ; sim = rjags::jags.model(file=textConnection(model_str), data = data, n.adapt=mcmc$n.adapt, n.chain=1)
     cat('\nupdating MCMC (burn-in) ...'); update(sim)
-    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.samples.per.chain)
+    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
     
     ## computing summary
@@ -168,7 +168,7 @@ eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, par
     ## Debug/Monitoring message --------------------------
     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
     msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
-    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.samples.per.chain, '\n'); cat(msg)
+    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
     ## ---------------------------------------------------
 
@@ -185,7 +185,7 @@ eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, par
     ## cat('\nupdating MCMC (burn-in) ...')
     ## dclone::parUpdate(cl = cl.chains, object=name, n.iter=mcmc$burnin)
     ## cat('\nDrawing the samples...')
-    ## samples      = dclone::parCodaSamples(cl=cl.chains, model=name, variable.names=parameters, n.iter=mcmc$n.samples.per.chain, thin=1)
+    ## samples      = dclone::parCodaSamples(cl=cl.chains, model=name, variable.names=parameters, n.iter=mcmc$n.iter, thin=1)
 
     ## ## stop parallelization
     ## ## --------------------
@@ -197,7 +197,7 @@ eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, par
     time.init    = Sys.time()
     cat('\ncompiling the model...')     ; sim = rjags::jags.model(file=textConnection(model_str), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
     cat('\nupdating MCMC (burn-in) ...'); update(sim)
-    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.samples.per.chain)
+    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
     
     ## computing summary
