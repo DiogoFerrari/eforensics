@@ -12,7 +12,7 @@ devtools::install_github("hdpGLM")
 
 * Usage
 
-In R, check src_R{help(eforensics)}
+In R, check =help(eforensics)=
 
 #+BEGIN_SRC R :exports code
 library(eforensics)

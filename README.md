@@ -15,7 +15,7 @@ devtools::install_github("hdpGLM")
 Usage
 =====
 
-In R, check `help(eforensics)`{.r .rundoc-block rundoc-language="R"}
+In R, check `help(eforensics)`
 
 ``` {.r .rundoc-block rundoc-language="R" rundoc-exports="code"}
 library(eforensics)
