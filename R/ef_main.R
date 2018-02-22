@@ -1,16 +1,17 @@
 
 ef_check_jags <- function()
 {
-    if (!runjags::testjags()$JAGS.found) {
+    if (!runjags::testjags(silent=T)$JAGS.found) {
         stop("\n\nThe election forensics package current uses JAGS, but is was not found in the machine you are running the code. Please install it and run the code again.\n\n")
     }
+    invisible()
 }
 
 ef_get_parameters_to_monitor <- function(model)
 {
-    if(model == 'rn')          parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota", "mu.iota.alpha", "mu.chi","mu.chi.alpha","sigma.iota", "sigma.iota.alpha", "sigma.tau", "sigma.nu" , "alpha")
-    if(model == 'rn_no_alpha') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota", "mu.iota.alpha", "mu.chi","mu.chi.alpha","sigma.iota", "sigma.iota.alpha", "sigma.tau", "sigma.nu" )
-    if(model == 'bl')          parameters = c("pi", "beta", "gamma", "zeta.o", "zeta.a", "chi.o", "chi.a")
+    if(model == 'rn')          parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_alpha') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
+    if(model == 'bl')          parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
     return(parameters)
 }
 
@@ -100,13 +101,14 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
     }
 
+
     ## get parameters to monitor
     ## -------------------------
     if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
 
     ## get model
     ## ---------
-    model_str = get_model(model)
+    model = get_model(model)
 
     ## Debug/Monitoring message --------------------------
     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
@@ -118,11 +120,12 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     ## MCMC
     ## ----
     time.init    = Sys.time()
-    cat('\ncompiling the model...')     ; sim = rjags::jags.model(file=textConnection(model_str), data = data, n.adapt=mcmc$n.adapt, n.chain=1)
-    cat('\nupdating MCMC (burn-in) ...'); update(sim)
-    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
+    cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
+    cat('\nUpdating MCMC (burn-in) ...\n'); update(sim)
+    cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
     
+
     ## computing summary
     ## -----------------
     ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
@@ -133,9 +136,9 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     return(results)
 }
 
-
 eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
 {
+
     ## check if JAGS is installed
     ef_check_jags()
     
@@ -156,55 +159,42 @@ eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, par
         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
     }
 
+
     ## get parameters to monitor
     ## -------------------------
     if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
 
     ## get model
     ## ---------
-    model_str = get_model(model)
-
+    model = get_model(model)
 
     ## Debug/Monitoring message --------------------------
     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
-    msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
+    ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
     msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
     ## ---------------------------------------------------
 
-    ## ## start parallel process
-    ## ## -------------------------
-    ## time.init    = Sys.time()
-    ## cl.chains    = parallel::makePSOCKcluster(4)
-
-    ## clusterExport(cl.chains, list("model"))
-
-    ## name         = 'ef_model'
-    ## cat('\ncompiling the model...')
-    ## sim          = dclone::parJagsModel(cl=cl.chains, file=textConnection(model), data = data, name=name, inits=mcmc$inits, n.chains=mcmc$n.chains, n.adapt=mcmc$n.adapt)
-    ## cat('\nupdating MCMC (burn-in) ...')
-    ## dclone::parUpdate(cl = cl.chains, object=name, n.iter=mcmc$burnin)
-    ## cat('\nDrawing the samples...')
-    ## samples      = dclone::parCodaSamples(cl=cl.chains, model=name, variable.names=parameters, n.iter=mcmc$n.iter, thin=1)
-
-    ## ## stop parallelization
-    ## ## --------------------
-    ## parallel::stopCluster(cl.chains)
-    ## T.mcmc = Sys.time() - time.init
-
-    ## MCMC
+    ## MCMC (parallel)
     ## ----
-    time.init    = Sys.time()
-    cat('\ncompiling the model...')     ; sim = rjags::jags.model(file=textConnection(model_str), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
-    cat('\nupdating MCMC (burn-in) ...'); update(sim)
-    cat('\nDrawing the samples...')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
-    T.mcmc = Sys.time() - time.init
-    
+    cl <- parallel::makePSOCKcluster(min(parallel::detectCores()-1, mcmc$n.chains))
+    samples = dclone::jags.parfit(cl       = cl,
+                                  data     = data,
+                                  params   = parameters,
+                                  model    = bl_f,
+                                  n.adapt  = mcmc$n.adapt,
+                                  n.chains = mcmc$n.chains,
+                                  n.update = mcmc$burn.in,
+                                  n.iter   = mcmc$n.iter,
+                                  thin     = 1)
+    parallel::stopCluster(cl)
+
+
     ## computing summary
     ## -----------------
-    summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
-
-    results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
+    ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
+    ## results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
+    results = samples
 
     cat("\n\nEstimation Completed\n\n")
     return(results)

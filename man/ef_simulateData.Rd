@@ -11,7 +11,7 @@ ef_simulateData(n = 2000, nCov = 0, model)
 
 \item{nCov}{number of covariates affecting both turnout and votes for the winner in each election unit}
 
-\item{model}{see \code{\link{eforensics}}}
+\item{model}{a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.}
 }
 \value{
 The function returns a list with a data frame with the simulated data and a sublist with the parameters used to generate the data
