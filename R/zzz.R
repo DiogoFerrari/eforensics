@@ -4,7 +4,7 @@
 NULL 
 
 #' @importFrom magrittr %>%
-#' @importFrom foreach %dopar%
+
 
 .onAttach <- function(libname, pkgname){
     packageStartupMessage('

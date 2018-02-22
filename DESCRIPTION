@@ -14,8 +14,7 @@ Imports: magrittr,
     rjags,
     LCA,
     MASS,
-    parallel,
-    runjags,
     LaplacesDemon,
-    foreach
+    parallel,
+    runjags
 RoxygenNote: 6.0.1
