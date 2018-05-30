@@ -125,6 +125,9 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 ## }}}
 eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
 {
+
+    options(warn=-1)
+    on.exit(options(warn=0))
     ## check if JAGS is installed
     ef_check_jags()
     
@@ -177,7 +180,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
         samples = get_Z(samples)
     else
         samples = create_list(samples)
-    class(samples) = "ef"
+    class(samples) = "eforensics"
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)
@@ -228,7 +231,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
 ##     samples = dclone::jags.parfit(cl       = cl,
 ##                                   data     = data,
 ##                                   params   = parameters,
-##                                   model    = bl_f,
+##                                   model    = textConnection(model),
 ##                                   n.adapt  = mcmc$n.adapt,
 ##                                   n.chains = mcmc$n.chains,
 ##                                   n.update = mcmc$burn.in,

@@ -28,15 +28,62 @@ ef_classify <- function(data, samples){
     return(cbind(data, Estimated.Distribution=k.list))
 }
 
+## {{{ docs }}}
+#' Summary 
+#'
+#' This function return summaries of the posterior distribution estimated by the function \code{eforensics}
+#'
+#'
+#' @param object the output of the function \code{eforensics}
+#' @param ... join.chaing=TRUE can be used to provide summaries of chains after they are combined together 
+#'
 #' @export
-summary.ef <- function(object, ...){
-    samp = list()
-    for (i in 1:length(object))
-    {
-        samp[[i]] = coda::as.mcmc(object[[i]]$parameters)
+## }}}
+summary.eforensics <- function(object, ...)
+{
+    args = as.list(match.call())
+    if('join.chains' %in% names(args)) {
+        join.chains = as.logical(args$join.chains)
+    }else{
+        join.chains = FALSE
     }
-    samp = coda::as.mcmc(samp)
-    return(samp %>% summary(.))
+        
+
+    x = object
+    if (join.chains) {
+        samp = x %>% purrr::map(.x=., ~.x['parameters'][[1]])  %>% do.call(rbind,.)
+        HPD = samp %>%
+            coda::as.mcmc(.) %>%
+            coda::HPDinterval(.) %>%
+            data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.)) %>%
+            dplyr::rename(HPD.lower = lower, HPD.upper = upper)  
+
+        samp = samp %>%
+            coda::as.mcmc(.) %>%
+            summary(.) %>%
+            .[[1]] %>%
+            data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.))  %>%
+            dplyr::select(Parameter, Mean, SD) %>%
+            dplyr::full_join(., HPD , by=c("Parameter"))  
+    }else{
+        samp = list()
+        for (i in 1:length(x))
+        {
+            HPD = x[[i]]$parameters %>%
+                coda::HPDinterval(.) %>%
+                data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.)) %>%
+                dplyr::rename(HPD.lower = lower, HPD.upper = upper)  
+            tab = x[[i]]$parameters %>%
+                summary(.) %>%
+                .[[1]] %>%
+                data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.))  %>%
+                dplyr::select(Parameter, Mean, SD) %>%
+                dplyr::full_join(., HPD , by=c("Parameter"))  
+            samp[[i]] = tab
+        }
+        names(samp) = paste0('Chain ', 1:length(x)) 
+    }
+    return(samp)
 }
 
 ## {{{ docs }}}

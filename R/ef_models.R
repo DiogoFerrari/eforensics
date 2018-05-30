@@ -77,6 +77,7 @@ bl <- function()
 "
 }
 
+
 bl_working <- function()
 {
 "model{
@@ -156,6 +157,7 @@ bl_working <- function()
 ## =====================================================
 ## restricted normals
 ## =====================================================
+
 
 rn <- function()
 {
@@ -262,6 +264,7 @@ model{
 } 
 "}
 
+
 normal <- function()
 {
 "data{
@@ -365,6 +368,7 @@ model{
     }
 } 
 "}
+
 
 rn_no_scaled <- function()
 {
@@ -470,6 +474,7 @@ model{
     }
 } 
 "}
+
 
 rn_no_alpha <- function()
 {
@@ -583,6 +588,7 @@ model{
 ## --------------------
 
 
+
 rn_sep <- function()
 {
 "data{
@@ -688,6 +694,7 @@ model{
 } 
 "}
 
+
 normal_sep <- function()
 {
 "data{
@@ -790,6 +797,7 @@ model{
     }
 } 
 "}
+
 
 rn_no_scaled_sep <- function()
 {
@@ -895,6 +903,7 @@ model{
     }
 } 
 "}
+
 
 rn_no_alpha_sep <- function()
 {

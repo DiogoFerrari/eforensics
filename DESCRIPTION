@@ -20,5 +20,6 @@ Imports: magrittr,
     foreach,
     tibble,
     data.table,
-    msm
+    msm,
+    purrr
 RoxygenNote: 6.0.1
