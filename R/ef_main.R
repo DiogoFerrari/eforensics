@@ -7,19 +7,63 @@ ef_check_jags <- function()
     invisible()
 }
 
+get_Z <- function(samples)
+{
+    ## replace matrix Z (sample size) x (number of interation) to a single column matrix with z.hat
+    ## the estimated cluster of Zi. Zi is classified in the cluster it has highest estimated
+    ## posterior probability to belong to
+    for (i in 1:length(samples))
+    {
+        z            = samples[[i]][,base::grepl(pattern='Z.[0-9]*.', x=colnames(samples[[i]]))]
+        k.hat        =   base::apply(z, 2, function(zi) which.max(c(sum(zi==1), sum(zi==2), sum(zi==3)) ) )
+        piZi         = t(base::apply(z, 2, function(zi) c(sum(zi==1), sum(zi==2), sum(zi==3))/length(zi))) 
+        colnames(piZi )= c("pi[Zi1]", "pi[Zi2]", "pi[Zi3]")
+        samp         = samples[[i]][,!base::grepl(pattern='Z.[0-9]*.', x=colnames(samples[[i]]))]
+        samp         = list(parameters=coda::as.mcmc(samp), k.hat=k.hat, piZi=piZi)
+        samples[[i]] = samp
+    }
+    return(samples)
+}
+
+create_list <- function(samples)
+{
+    for (i in 1:length(samples))
+    {
+        samples[[i]] = list(parameters=samples[[i]])
+    }
+    return(samples)
+}
+
 ef_get_parameters_to_monitor <- function(model)
 {
-    if(model == 'rn')          parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_alpha') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
-    if(model == 'bl')          parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'rn')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_scaled') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'normal')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_alpha')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
+
+    if(model == 'rn_sep')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_scaled_sep') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'normal_sep')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_alpha_sep')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
+
+    if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
     return(parameters)
 }
 
 get_model <- function(model)
 {
-    if (model == 'rn')          return(rn())
-    if (model == 'rn_no_alpha') return(rn_no_alpha())
+    if (model == 'rn')           return(rn())
+    if (model == 'rn_no_scaled') return(rn_no_scaled())
+    if (model == 'normal')       return(normal())
+    if (model == 'rn_no_alpha')  return(rn_no_alpha())
+
+    if (model == 'rn_sep')           return(rn_sep())
+    if (model == 'rn_no_scaled_sep') return(rn_no_scaled_sep())
+    if (model == 'normal_sep')       return(normal_sep())
+    if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
+
     if (model == 'bl')          return(bl())
+
 }
 
 getRegMatrix <- function(func.call, data, weights, formula_number=1)
@@ -35,18 +79,18 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
     func.call[[3]] = quote(data)
     reg.matrix <- eval(func.call, parent.frame())
     ## response variable
-    y   <- model.response(reg.matrix, "numeric")
+    y   <- stats::model.response(reg.matrix, "numeric")
     ## weights
-    w   <- as.vector(model.weights(reg.matrix))
+    w   <- as.vector(stats::model.weights(reg.matrix))
     if (!is.null(w) && !is.numeric(w)) stop("'weights' must be a numeric vector")
-    offset <- as.vector(model.offset(func.call))
+    offset <- as.vector(stats::model.offset(func.call))
     if (!is.null(offset)) {
         if (length(offset) != NROW(y)) 
             stop(gettextf("number of offsets is %d, should equal %d (number of observations)", length(offset), NROW(y)), domain = NA)
     }
     ## covariates
     mt1    <- attr(reg.matrix, "terms")
-    if (is.empty.model(mt1)) {
+    if (stats::is.empty.model(mt1)) {
         x <- matrix(1, ncol=1,nrow=nrow(y))
         results <- list(coefficients = if (is.matrix(y)) matrix(, 0, 3) else numeric(), residuals = y, fitted.values = 0 * y, weights = w, rank = 0L, df.residual = if (!is.null(w)) sum(w != 0) else if (is.matrix(y)) nrow(y) else length(y))
         if (!is.null(offset)) {
@@ -54,7 +98,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
             results$residuals <- y - offset
         }
     } else {
-        x <- model.matrix(mt1, reg.matrix, contrasts)
+        x <- stats::model.matrix(mt1, reg.matrix, contrasts)
     }
     return(list(y=y, X=x, w=w))
 }
@@ -121,81 +165,84 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     ## ----
     time.init    = Sys.time()
     cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
-    cat('\nUpdating MCMC (burn-in) ...\n'); update(sim)
+    cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim)
     cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
-    
 
     ## computing summary
     ## -----------------
     ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
     ## results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
-    results = samples
+    if(!is.null(parameters) & "Z" %in% parameters)
+        samples = get_Z(samples)
+    else
+        samples = create_list(samples)
+    class(samples) = "ef"
 
     cat("\n\nEstimation Completed\n\n")
-    return(results)
+    return(samples)
 }
 
-eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
-{
+## eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
+## {
 
-    ## check if JAGS is installed
-    ef_check_jags()
+##     ## check if JAGS is installed
+##     ef_check_jags()
     
-    ## ## construct the regression matrices (data.frames) based on the formula provided
-    ## ## -----------------------------------------------------------------------------
-    func.call <- match.call(expand.dots = FALSE)
-    mat     = getRegMatrix(func.call, data, weights, formula_number=1)
-    w       = mat$y
-    Xw      = mat$X
-    weightw = mat$w
-    mat     = getRegMatrix(func.call, data, weights, formula_number=2)
-    a       = mat$y
-    Xa      = mat$X
-    weighta = mat$w
-    if(model == 'bl'){
-        data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w), N = data$N)
-    }else{
-        data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
-    }
+##     ## ## construct the regression matrices (data.frames) based on the formula provided
+##     ## ## -----------------------------------------------------------------------------
+##     func.call <- match.call(expand.dots = FALSE)
+##     mat     = getRegMatrix(func.call, data, weights, formula_number=1)
+##     w       = mat$y
+##     Xw      = mat$X
+##     weightw = mat$w
+##     mat     = getRegMatrix(func.call, data, weights, formula_number=2)
+##     a       = mat$y
+##     Xa      = mat$X
+##     weighta = mat$w
+##     if(model == 'bl'){
+##         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w), N = data$N)
+##     }else{
+##         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
+##     }
 
 
-    ## get parameters to monitor
-    ## -------------------------
-    if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
+##     ## get parameters to monitor
+##     ## -------------------------
+##     if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
 
-    ## get model
-    ## ---------
-    model = get_model(model)
+##     ## get model
+##     ## ---------
+##     model = get_model(model)
 
-    ## Debug/Monitoring message --------------------------
-    msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
-    ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
-    msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
-    msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
-    ## ---------------------------------------------------
+##     ## Debug/Monitoring message --------------------------
+##     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
+##     ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
+##     msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
+##     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
+##     ## ---------------------------------------------------
 
-    ## MCMC (parallel)
-    ## ----
-    cl <- parallel::makePSOCKcluster(min(parallel::detectCores()-1, mcmc$n.chains))
-    samples = dclone::jags.parfit(cl       = cl,
-                                  data     = data,
-                                  params   = parameters,
-                                  model    = bl_f,
-                                  n.adapt  = mcmc$n.adapt,
-                                  n.chains = mcmc$n.chains,
-                                  n.update = mcmc$burn.in,
-                                  n.iter   = mcmc$n.iter,
-                                  thin     = 1)
-    parallel::stopCluster(cl)
+##     ## MCMC (parallel)
+##     ## ----
+##     cl <- parallel::makePSOCKcluster(min(parallel::detectCores()-1, mcmc$n.chains))
+##     samples = dclone::jags.parfit(cl       = cl,
+##                                   data     = data,
+##                                   params   = parameters,
+##                                   model    = bl_f,
+##                                   n.adapt  = mcmc$n.adapt,
+##                                   n.chains = mcmc$n.chains,
+##                                   n.update = mcmc$burn.in,
+##                                   n.iter   = mcmc$n.iter,
+##                                   thin     = 1)
+##     parallel::stopCluster(cl)
 
 
-    ## computing summary
-    ## -----------------
-    ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
-    ## results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
-    results = samples
+##     ## computing summary
+##     ## -----------------
+##     ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
+##     ## results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
+##     results = samples
 
-    cat("\n\nEstimation Completed\n\n")
-    return(results)
-}
+##     cat("\n\nEstimation Completed\n\n")
+##     return(results)
+## }

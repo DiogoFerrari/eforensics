@@ -8,12 +8,12 @@ simulate_bl <- function(n, nCov, model)
     d         = nCov
 
     pi        = LaplacesDemon::rdirichlet(1, c(1,1,1))
-    mu.iota.m = runif(1,0,k1)
-    mu.iota.s = runif(1,0,k1)
-    mu.chi.m  = runif(1,k2,1)
-    mu.chi.s  = runif(1,k2,1)
-    beta.tau  = runif(n=nCov+1, -.25,.25)
-    beta.nu   = runif(n=nCov+1, -.25,.25)
+    mu.iota.m = stats::runif(1,0,k1)
+    mu.iota.s = stats::runif(1,0,k1)
+    mu.chi.m  = stats::runif(1,k2,1)
+    mu.chi.s  = stats::runif(1,k2,1)
+    beta.tau  = stats::runif(n=nCov+1, -.25,.25)
+    beta.nu   = stats::runif(n=nCov+1, -.25,.25)
 
     if (d>0) {
         x        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
@@ -21,8 +21,8 @@ simulate_bl <- function(n, nCov, model)
         mu.tau   = as.matrix(cbind(1,x)) %*% beta.tau
         mu.nu    = as.matrix(cbind(1,x)) %*% beta.nu
     }else{
-        mu.tau   = rep(runif(1,.3,.7),n)
-        mu.nu    = rep(runif(1,.3,.7),n)
+        mu.tau   = rep(stats::runif(1,.3,.7),n)
+        mu.nu    = rep(stats::runif(1,.3,.7),n)
     }
     p.tau    = 1/(1+exp(-mu.tau))
     p.nu     = 1/(1+exp(-mu.nu))
@@ -39,17 +39,17 @@ simulate_bl <- function(n, nCov, model)
     ## data
     ## ----
     ## latent
-    N  = sample(500:1000, n, replace=T)
-    z  = sample(c(1,2,3), n, prob=pi, replace=T)
+    N  = base::sample(500:1000, n, replace=T)
+    z  = base::sample(c(1,2,3), n, prob=pi, replace=T)
     tau = nu = iota.m = chi.m = iota.s = chi.s = NA
     for (i in 1:n)
     {
-        tau[i]    = rbinom(1, N[i], prob=p.tau[i])  /N[i]
-        nu[i]     = rbinom(1, N[i], prob=p.nu[i])   /N[i]
-        iota.m[i] = rbinom(1, N[i], prob=mu.iota.m) /N[i]
-        chi.m[i]  = rbinom(1, N[i], prob=mu.chi.m)  /N[i]
-        iota.s[i] = rbinom(1, N[i], prob=mu.iota.s) /N[i]
-        chi.s[i]  = rbinom(1, N[i], prob=mu.chi.s)  /N[i]
+        tau[i]    = stats::rbinom(1, N[i], prob=p.tau[i])  /N[i]
+        nu[i]     = stats::rbinom(1, N[i], prob=p.nu[i])   /N[i]
+        iota.m[i] = stats::rbinom(1, N[i], prob=mu.iota.m) /N[i]
+        chi.m[i]  = stats::rbinom(1, N[i], prob=mu.chi.m)  /N[i]
+        iota.s[i] = stats::rbinom(1, N[i], prob=mu.iota.s) /N[i]
+        chi.s[i]  = stats::rbinom(1, N[i], prob=mu.chi.s)  /N[i]
     }
     latent     = list(z=z,tau=tau,nu=nu,iota.m=iota.m,chi.m=chi.m,iota.s=iota.s,chi.s=chi.s)
     ## observed
@@ -82,25 +82,25 @@ simulate_rn_no_alpha <- function(n, nCov, model)
 
     pi           = LaplacesDemon::rdirichlet(1, c(1,1,1))
 
-    mu.iota.m    = runif(1,0,k1)
-    mu.iota.s    = runif(1,0,k1)
-    mu.chi.m     = runif(1,k2,1)
-    mu.chi.s     = runif(1,k2,1)
-    mu.tau       = rnorm(n,.5,.1)
-    mu.nu        = rnorm(n,.5,.1)
+    mu.iota.m    = stats::runif(1,0,k1)
+    mu.iota.s    = stats::runif(1,0,k1)
+    mu.chi.m     = stats::runif(1,k2,1)
+    mu.chi.s     = stats::runif(1,k2,1)
+    mu.tau       = stats::rnorm(n,.5,.1)
+    mu.nu        = stats::rnorm(n,.5,.1)
 
-    sigma.iota.m = runif(1,0,.1)
-    sigma.iota.s = runif(1,0,.1)
+    sigma.iota.m = stats::runif(1,0,.1)
+    sigma.iota.s = stats::runif(1,0,.1)
     sigma.chi.m  = 0.075
     sigma.chi.s  = 0.075
-    sigma.tau    = runif(1, 0,.1)
-    sigma.nu     = runif(1, 0,.1)
+    sigma.tau    = stats::runif(1, 0,.1)
+    sigma.nu     = stats::runif(1, 0,.1)
 
     if (d>0) {
         x = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
         names(x) = paste0('x',1:d, sep='')
-        beta.tau         = lm(mu.tau~.,data=x)$coeff
-        beta.nu          = lm(mu.nu~.,data=x)$coeff
+        beta.tau         = stats::lm(mu.tau~.,data=x)$coeff
+        beta.nu          = stats::lm(mu.nu~.,data=x)$coeff
     }else{
         beta.tau         = mu.tau[1]
         beta.nu          = mu.nu[1]
@@ -124,7 +124,7 @@ simulate_rn_no_alpha <- function(n, nCov, model)
     ## data
     ## ----
     ## latent
-    z         = sample(c(1,2,3), n, prob=pi, replace=T)
+    z         = base::sample(c(1,2,3), n, prob=pi, replace=T)
     tau       = msm::rtnorm(n, mu.tau,  sigma.tau,   0,1)
     nu        = msm::rtnorm(n, mu.nu,   sigma.nu,    0,1)
     iota.m    = msm::rtnorm(n, mu.iota.m, sigma.iota.m,  0,1)
@@ -157,24 +157,24 @@ simulate_rn <- function(n, nCov, model)
     k2         = .8
     d          = nCov
 
-    alpha      = runif(1, 0,2)
+    alpha      = stats::runif(1, 0,2)
     pi         = LaplacesDemon::rdirichlet(1, c(1,1,1))
 
-    mu.iota.m    = runif(1,0,k1)
-    mu.chi.m     = runif(1,k2,1)
-    mu.tau       = rnorm(n,.5,.1)
-    mu.nu        = rnorm(n,.5,.1)
+    mu.iota.m    = stats::runif(1,0,k1)
+    mu.chi.m     = stats::runif(1,k2,1)
+    mu.tau       = stats::rnorm(n,.5,.1)
+    mu.nu        = stats::rnorm(n,.5,.1)
 
-    sigma.iota.m = runif(1,0,.1)
+    sigma.iota.m = stats::runif(1,0,.1)
     sigma.chi.m  = 0.075
-    sigma.tau    = runif(1, 0,.1)
-    sigma.nu     = runif(1, 0,.1)
+    sigma.tau    = stats::runif(1, 0,.1)
+    sigma.nu     = stats::runif(1, 0,.1)
 
     if (d>0) {
         x = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
         names(x) = paste0('x',1:d, sep='')
-        beta.tau         = lm(mu.tau~.,data=x)$coeff
-        beta.nu          = lm(mu.nu~.,data=x)$coeff
+        beta.tau         = stats::lm(mu.tau~.,data=x)$coeff
+        beta.nu          = stats::lm(mu.nu~.,data=x)$coeff
     }else{
         beta.tau         = mu.tau[1]
         beta.nu          = mu.nu[1]
@@ -191,7 +191,7 @@ simulate_rn <- function(n, nCov, model)
     ## data
     ## ----
     ## latent
-    z          = sample(c(1,2,3), n, prob=pi, replace=T)
+    z          = base::sample(c(1,2,3), n, prob=pi, replace=T)
     tau        = msm::rtnorm(n, mu.tau,  sigma.tau,   0,1)
     nu         = msm::rtnorm(n, mu.nu,   sigma.nu,    0,1)
     iota.m     = msm::rtnorm(n, mu.iota.m, sigma.iota.m,  0,1)

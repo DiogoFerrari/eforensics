@@ -1,8 +1,4 @@
 # required (by devtools) to link the cpp code 
-#' @useDynLib eforensics
-#' @importFrom Rcpp sourceCpp
-NULL 
-
 #' @importFrom magrittr %>%
 #' @importFrom foreach %dopar%
 
@@ -20,3 +16,5 @@ NULL
 
  ')
 }
+
+if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "contrasts"))
