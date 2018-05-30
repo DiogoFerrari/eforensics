@@ -9,7 +9,9 @@ required to use the current version of this package
 
 ``` {.r .rundoc-block rundoc-language="R" rundoc-exports="code"}
 # Install the development version (requires the package "devtools", so install it first if it is not installed already)
-devtools::install_github("eforensics")
+devtools::install_github("DiogoFerrari/eforensics")
+# If you don't want to update the dependencies, use: (you may need to install some dependencies manually)
+devtools::install_github("DiogoFerrari/eforensics", dependencies=F)
 ```
 
 Usage
