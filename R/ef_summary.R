@@ -86,6 +86,12 @@ summary.eforensics <- function(object, ...)
     return(samp)
 }
 
+#' @export
+print.eforensics <- function(x, ...)
+{
+    summary(x)
+}
+
 ## {{{ docs }}}
 #' Get parameters
 #'

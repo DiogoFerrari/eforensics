@@ -1,4 +1,18 @@
 
+
+## {{{ error handling }}}
+
+check_mcmc <- function(mcmc)
+{
+    if ("n.chains" %in% names(mcmc) & mcmc$n.chains<2) {stop("\n\nNumber of chains (n.chains) must be larger than 1. \n\n")}
+    if (!"n.chains" %in% names(mcmc)) {stop("\n\nYou must include number of chains (n.chains) in the list provided in the mcmc parameter of the function eforensics(). It must must larger than one \n\n")}
+    if (!"n.iter"   %in% names(mcmc)) {stop("\n\nYou must include number of iterations (n.iter) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
+    if (!"burn.in"  %in% names(mcmc)) {stop("\n\nYou must include the burn-in iterations (burn.in) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
+    if (!"n.adapt"  %in% names(mcmc)) {stop("\n\nYou must include number of adaptative steps (n.adapt) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
+}
+
+## }}}
+
 ef_check_jags <- function()
 {
     if (!runjags::testjags(silent=T)$JAGS.found) {
@@ -126,6 +140,9 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
 {
 
+    ## error handling
+    check_mcmc(mcmc)
+
     options(warn=-1)
     on.exit(options(warn=0))
     ## check if JAGS is installed
@@ -147,7 +164,6 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     }else{
         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
     }
-
 
     ## get parameters to monitor
     ## -------------------------
