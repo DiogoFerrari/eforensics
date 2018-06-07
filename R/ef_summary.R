@@ -35,7 +35,7 @@ ef_classify <- function(data, samples){
 #'
 #'
 #' @param object the output of the function \code{eforensics}
-#' @param ... join.chaing=TRUE can be used to provide summaries of chains after they are combined together 
+#' @param ... join.chains=TRUE can be used to provide summaries of chains after they are combined together 
 #'
 #' @export
 ## }}}
@@ -43,7 +43,7 @@ summary.eforensics <- function(object, ...)
 {
     args = as.list(match.call())
     if('join.chains' %in% names(args)) {
-        join.chains = as.logical(args$join.chains)
+        join.chains = as.logical(as.character(args$join.chains))
     }else{
         join.chains = FALSE
     }
@@ -89,7 +89,7 @@ summary.eforensics <- function(object, ...)
 #' @export
 print.eforensics <- function(x, ...)
 {
-    summary(x)
+    return(summary(x))
 }
 
 ## {{{ docs }}}
