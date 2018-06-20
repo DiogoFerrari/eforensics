@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{the output of the function \code{eforensics}}
 
-\item{...}{join.chaing=TRUE can be used to provide summaries of chains after they are combined together}
+\item{...}{join.chains=TRUE can be used to provide summaries of chains after they are combined together}
 }
 \description{
 This function return summaries of the posterior distribution estimated by the function \code{eforensics}

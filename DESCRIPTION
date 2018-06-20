@@ -21,5 +21,9 @@ Imports: magrittr,
     tibble,
     data.table,
     msm,
-    purrr
+    purrr,
+    stringr,
+    doParallel,
+    ggplot2,
+    tidyr
 RoxygenNote: 6.0.1

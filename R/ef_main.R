@@ -1,25 +1,5 @@
 
 
-## {{{ error handling }}}
-
-check_mcmc <- function(mcmc)
-{
-    if ("n.chains" %in% names(mcmc) & mcmc$n.chains<2) {stop("\n\nNumber of chains (n.chains) must be larger than 1. \n\n")}
-    if (!"n.chains" %in% names(mcmc)) {stop("\n\nYou must include number of chains (n.chains) in the list provided in the mcmc parameter of the function eforensics(). It must must larger than one \n\n")}
-    if (!"n.iter"   %in% names(mcmc)) {stop("\n\nYou must include number of iterations (n.iter) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
-    if (!"burn.in"  %in% names(mcmc)) {stop("\n\nYou must include the burn-in iterations (burn.in) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
-    if (!"n.adapt"  %in% names(mcmc)) {stop("\n\nYou must include number of adaptative steps (n.adapt) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
-}
-
-## }}}
-
-ef_check_jags <- function()
-{
-    if (!runjags::testjags(silent=T)$JAGS.found) {
-        stop("\n\nThe election forensics package current uses JAGS, but is was not found in the machine you are running the code. Please install it and run the code again.\n\n")
-    }
-    invisible()
-}
 
 get_Z <- function(samples)
 {
@@ -48,7 +28,7 @@ create_list <- function(samples)
     return(samples)
 }
 
-ef_get_parameters_to_monitor <- function(model)
+ef_get_parameters_to_monitor <- function(model, all=FALSE)
 {
     if(model == 'rn')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
     if(model == 'rn_no_scaled') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
@@ -61,6 +41,9 @@ ef_get_parameters_to_monitor <- function(model)
     if(model == 'rn_no_alpha_sep')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
     if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+
+    if(all) parameters = c(parameters, 'Z')
+
     return(parameters)
 }
 
@@ -130,7 +113,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @param weights (not used)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
 #' @param model a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.
-#' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters.
+#' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
@@ -168,10 +151,12 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     ## get parameters to monitor
     ## -------------------------
     if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
+    if(parameters[1] == 'all') parameters = ef_get_parameters_to_monitor(model, all=TRUE)
 
     ## get model
     ## ---------
-    model = get_model(model)
+    model.name = model
+    model      = get_model(model.name)
 
     ## Debug/Monitoring message --------------------------
     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
@@ -188,15 +173,15 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
 
-    ## computing summary
-    ## -----------------
-    ## summary <- list(summary = summary(samples), HPD = coda::HPDinterval(samples))
-    ## results = list(samples=samples, stat=summary, time.elapsed=T.mcmc)
     if(!is.null(parameters) & "Z" %in% parameters)
         samples = get_Z(samples)
     else
         samples = create_list(samples)
     class(samples) = "eforensics"
+
+    attr(samples, "formula.w") = formula1
+    attr(samples, "formula.a") = formula2
+    attr(samples, "model")     = model.name
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)

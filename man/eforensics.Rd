@@ -20,7 +20,7 @@ eforensics(formula1, formula2, data, weights, mcmc, model, parameters = NULL,
 
 \item{model}{a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.}
 
-\item{parameters}{a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters.}
+\item{parameters}{a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.}
 
 \item{na.action}{(not used)}
 }

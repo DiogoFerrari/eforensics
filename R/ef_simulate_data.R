@@ -69,7 +69,9 @@ simulate_bl <- function(n, nCov, model)
     }else{
         data = data.frame(cbind(w = w, a = a, N = N))
     }
-    return(list(parameters=true.theta, latent=latent, data=data))
+    sim_data = list(parameters=true.theta, latent=latent, data=data)
+    class(sim_data) = 'eforensics_sim_data'
+    return(sim_data)
 }
 
 simulate_rn_no_alpha <- function(n, nCov, model)
@@ -146,7 +148,9 @@ simulate_rn_no_alpha <- function(n, nCov, model)
         data = data.frame(cbind(w = w, a = a))
     }
 
-    return(list(parameters=true.theta, latent=latent, data=data))
+    sim_data = list(parameters=true.theta, latent=latent, data=data)
+    class(sim_data) = 'eforensics_sim_data'
+    return(sim_data)
 }
 
 simulate_rn <- function(n, nCov, model)
@@ -211,7 +215,9 @@ simulate_rn <- function(n, nCov, model)
         data = data.frame(cbind(w = w, a = a))
     }
 
-    return(list(parameters=true.theta, latent=latent, data=data))
+    sim_data = list(parameters=true.theta, latent=latent, data=data)
+    class(sim_data) = 'eforensics_sim_data'
+    return(sim_data)
 }
 
 ## {{{ docs }}}
