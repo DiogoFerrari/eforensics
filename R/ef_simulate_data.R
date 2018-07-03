@@ -1,5 +1,5 @@
 
-simulate_bl <- function(n, nCov, model)
+simulate_bl <- function(n, nCov, model, pi)
 {
     ## parameters
     ## ----------
@@ -7,7 +7,7 @@ simulate_bl <- function(n, nCov, model)
     k2         = .8
     d         = nCov
 
-    pi        = c(.6,.4,0)
+    #pi        = c(.6,.4,0)
     mu.iota.m = stats::runif(1,0,k1)
     mu.iota.s = stats::runif(1,0,k1)
     mu.chi.m  = stats::runif(1,k2,1)
@@ -74,7 +74,7 @@ simulate_bl <- function(n, nCov, model)
     return(sim_data)
 }
 
-simulate_rn_no_alpha <- function(n, nCov, model)
+simulate_rn_no_alpha <- function(n, nCov, model, pi)
 {
     ## parameters
     ## ----------
@@ -82,7 +82,7 @@ simulate_rn_no_alpha <- function(n, nCov, model)
     k2           = .8
     d            = nCov
 
-    pi           = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    #pi           = LaplacesDemon::rdirichlet(1, c(1,1,1))
 
     mu.iota.m    = stats::runif(1,0,k1)
     mu.iota.s    = stats::runif(1,0,k1)
@@ -153,7 +153,7 @@ simulate_rn_no_alpha <- function(n, nCov, model)
     return(sim_data)
 }
 
-simulate_rn <- function(n, nCov, model)
+simulate_rn <- function(n, nCov, model, pi)
 {
     ## parameters
     ## ----------
@@ -162,7 +162,7 @@ simulate_rn <- function(n, nCov, model)
     d          = nCov
 
     alpha      = stats::runif(1, 0,2)
-    pi         = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    #pi         = LaplacesDemon::rdirichlet(1, c(1,1,1))
 
     mu.iota.m    = stats::runif(1,0,k1)
     mu.chi.m     = stats::runif(1,k2,1)
@@ -234,9 +234,9 @@ simulate_rn <- function(n, nCov, model)
 #'
 #' @export
 ## }}}
-ef_simulateData <- function(n=2000,  nCov=0, model)
+ef_simulateData <- function(n=2000,  nCov=0, model,pi)
 {
-    if(model=='bl')         {return(simulate_bl(n,nCov,model))}
-    if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model))}
-    if(model=='rn')         {return(simulate_rn(n,nCov,model))}
+    if(model=='bl')         {return(simulate_bl(n,nCov,model,pi))}
+    if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model,pi))}
+    if(model=='rn')         {return(simulate_rn(n,nCov,model,pi))}
 }

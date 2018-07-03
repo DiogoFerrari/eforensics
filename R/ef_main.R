@@ -43,6 +43,16 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
     
     if(model == 'bl.vd')        parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","psi.i")
+    
+    if(model == 'rn.vd')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_scaled.vd') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'normal.vd')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_alpha.vd')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s", "psi.i")
+    
+    if(model == 'rn_sep.vd')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_scaled_sep.vd') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'normal_sep.vd')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_alpha_sep.vd')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s", "psi.i")
 
     if(all) parameters = c(parameters, 'Z')
 
@@ -64,6 +74,16 @@ get_model <- function(model)
     if (model == 'bl')          return(bl())
   
     if (model == 'bl.vd')       return(bl.vd())
+  
+  if (model == 'rn.vd')           return(rn.vd())
+  if (model == 'rn_no_scaled.vd') return(rn_no_scaled.vd())
+  if (model == 'normal.vd')       return(normal.vd())
+  if (model == 'rn_no_alpha.vd')  return(rn_no_alpha.vd())
+  
+  if (model == 'rn_sep.vd')           return(rn_sep.vd())
+  if (model == 'rn_no_scaled_sep.vd') return(rn_no_scaled_sep.vd())
+  if (model == 'normal_sep.vd')       return(normal_sep.vd())
+  if (model == 'rn_no_alpha_sep.vd')  return(rn_no_alpha_sep.vd())
 
 }
 
