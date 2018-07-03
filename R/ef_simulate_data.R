@@ -7,7 +7,7 @@ simulate_bl <- function(n, nCov, model)
     k2         = .8
     d         = nCov
 
-    pi        = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    pi        = c(.6,.4,0)
     mu.iota.m = stats::runif(1,0,k1)
     mu.iota.s = stats::runif(1,0,k1)
     mu.chi.m  = stats::runif(1,k2,1)
