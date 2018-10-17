@@ -575,7 +575,6 @@ model{
 
             ones[i] ~ dbern(p[i])
 
-
     }
 
     
