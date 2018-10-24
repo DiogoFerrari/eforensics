@@ -41,6 +41,8 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     if(model == 'rn_no_alpha_sep')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
     if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    #if(model == 'bbl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","nf.var")
+    if(model == 'bbl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s", "iota.m.beta","iota.s.beta","chi.m.beta","chi.s.beta","mu.tau.beta","mu.nu.beta")
     
     if(model == 'bl.vd')        parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","psi.i")
     
@@ -72,6 +74,7 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
+    if (model == 'bbl')          return(bbl())
   
     if (model == 'bl.vd')       return(bl.vd())
   
@@ -166,7 +169,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     a       = mat$y
     Xa      = mat$X
     weighta = mat$w
-    if(model == 'bl' | model == 'bl.vd'){
+    if(model == 'bl' | model == 'bl.vd' | model == "bbl"){
         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w), N = data$N)
     }else{
         data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
