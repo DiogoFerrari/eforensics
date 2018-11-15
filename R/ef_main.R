@@ -142,12 +142,13 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @param model a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.
 #' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
+#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
 #' @export
 ## }}}
-eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
+eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000)
 {
 
     ## error handling
@@ -199,6 +200,10 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim, n.iter = mcmc$burn.in)
     cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
+    if(get.dic != 0){
+      cat('\nDrawing DIC samples...\n')     ; dic.samples = rjags::dic.samples(model=sim, n.iter=get.dic, type = "popt")
+      T.mcmc = Sys.time() - time.init
+    }
 
     if(!is.null(parameters) & "Z" %in% parameters)
         samples = get_Z(samples)
@@ -209,6 +214,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     attr(samples, "formula.w") = formula1
     attr(samples, "formula.a") = formula2
     attr(samples, "model")     = model.name
+    attr(samples, "dic")       = dic.samples
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)
