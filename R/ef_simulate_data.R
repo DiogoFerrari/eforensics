@@ -73,7 +73,107 @@ simulate_bl <- function(n, nCov, model)
     class(sim_data) = 'eforensics_sim_data'
     return(sim_data)
 }
+simulate_bl_fc <- function(n, nCov, model)
+{
+    ## parameters
+    ## ----------
+    k1         = .5
+    k2         = .8
+    d         = nCov
 
+    pi          = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    mu.iota.m   = stats::runif(1,0,k1)
+    mu.iota.s   = stats::runif(1,0,k1)
+    mu.chi.m    = stats::runif(1,k2,1)
+    mu.chi.s    = stats::runif(1,k2,1)
+    beta.tau    = stats::runif(n=nCov+1, -.25,.25)
+    beta.nu     = stats::runif(n=nCov+1, -.25,.25)
+    beta.iota.s = stats::runif(n=nCov+1, -.25,.25)
+    beta.iota.m = stats::runif(n=nCov+1, -.25,.25)
+    beta.chi.s  = stats::runif(n=nCov+1, -.25,.25)
+    beta.chi.m  = stats::runif(n=nCov+1, -.25,.25)
+
+    if (d>0) {
+        x.a             = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        x.w             = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        x.iota.m        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        x.iota.s        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        x.chi.m         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        x.chi.s         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
+        names(x.a)      = paste0('x',1:d, ".a", sep='')
+        names(x.w)      = paste0('x',1:d, ".w", sep='')
+        names(x.iota.m) = paste0('x',1:d, ".iota.m", sep='')
+        names(x.iota.s) = paste0('x',1:d, ".iota.s",  sep='')
+        names(x.chi.m)  = paste0('x',1:d, ".chi.m", sep='')
+        names(x.chi.s)  = paste0('x',1:d, ".chi.s",  sep='')
+        mu.tau          = as.matrix(cbind(1,x.a)) %*% beta.tau
+        mu.nu           = as.matrix(cbind(1,x.w)) %*% beta.nu
+        mu.iota.m       = as.matrix(cbind(1,x.iota.m)) %*% beta.iota.m
+        mu.iota.s       = as.matrix(cbind(1,x.iota.s)) %*% beta.iota.s
+        mu.chi.m        = as.matrix(cbind(1,x.chi.m)) %*% beta.chi.m
+        mu.chi.s        = as.matrix(cbind(1,x.chi.s)) %*% beta.chi.s
+    }else{
+        mu.tau    = rep(stats::runif(1,.3,.7),n)
+        mu.nu     = rep(stats::runif(1,.3,.7),n)
+        mu.iota.m = rep(stats::runif(1,.3,.7),n)
+        mu.iota.s = rep(stats::runif(1,.3,.7),n)
+        mu.chi.m  = rep(stats::runif(1,.3,.7),n)
+        mu.chi.s  = rep(stats::runif(1,.3,.7),n)
+    }
+    p.tau    = 1/(1+exp(-mu.tau))
+    p.nu     = 1/(1+exp(-mu.nu))
+    p.iota.m = k1 * 1/(1+exp(-mu.iota.m))
+    p.iota.s = k1 * 1/(1+exp(-mu.iota.s))
+    p.chi.m  = k2 + (1 - k2) * 1/(1+exp(-mu.chi.m))
+    p.chi.s  = k2 + (1 - k2) * 1/(1+exp(-mu.chi.s))
+    ## vector with true parameters
+    true.theta = unlist(list(n=n, pi=pi,
+                             beta.tau  = beta.tau,
+                             beta.nu   = beta.nu,
+                             beta.iota.m = beta.iota.m, 
+                             beta.iota.s = beta.iota.s, 
+                             beta.chi.m  = beta.chi.m, 
+                             beta.chi.s  = beta.chi.s  
+                             ))
+    
+    ## data
+    ## ----
+    ## latent
+    N  = base::sample(500:1000, n, replace=T)
+    z  = base::sample(c(1,2,3), n, prob=pi, replace=T)
+    tau = nu = iota.m = chi.m = iota.s = chi.s = NA
+    for (i in 1:n)
+    {
+        tau[i]    = stats::rbinom(1, N[i], prob=p.tau[i])  /N[i]
+        nu[i]     = stats::rbinom(1, N[i], prob=p.nu[i])   /N[i]
+        iota.m[i] = stats::rbinom(1, N[i], prob=p.iota.m[i]) /N[i]
+        chi.m[i]  = stats::rbinom(1, N[i], prob=p.chi.m[i])  /N[i]
+        iota.s[i] = stats::rbinom(1, N[i], prob=p.iota.s[i]) /N[i]
+        chi.s[i]  = stats::rbinom(1, N[i], prob=p.chi.s[i])  /N[i]
+    }
+    latent     = list(z=z,tau=tau,nu=nu,iota.m=iota.m,chi.m=chi.m,iota.s=iota.s,chi.s=chi.s)
+    ## observed
+    ## --------
+    a = N * ((z==1) * (1 - tau) +
+             (z==2) * (1 - tau) * (1 - iota.m) +
+             (z==3) * (1 - tau) * (1 - chi.m) )
+    w = N * ((z==1) * (tau * nu) +
+             (z==2) * (tau*nu + iota.m*(1-tau) + iota.s*(tau)*(1-nu)  ) +
+             (z==3) * (tau*nu + chi.m* (1-tau) + chi.s *(tau)*(1-nu)  ) )
+    ## rounding w and a
+    w = round(w,0)
+    a = round(a,0)
+    x = cbind(x.w, x.a, x.iota.m, x.iota.s, x.chi.m, x.chi.s)
+    ## a = a + (N-w-a)
+    if (d>0) {
+        data = data.frame(cbind(w = w, a = a, N = N, x))
+    }else{
+        data = data.frame(cbind(w = w, a = a, N = N))
+    }
+    sim_data = list(parameters=true.theta, latent=latent, data=data)
+    class(sim_data) = 'eforensics_sim_data'
+    return(sim_data)
+}
 simulate_rn_no_alpha <- function(n, nCov, model)
 {
     ## parameters
@@ -237,6 +337,7 @@ simulate_rn <- function(n, nCov, model)
 ef_simulateData <- function(n=2000,  nCov=0, model)
 {
     if(model=='bl')         {return(simulate_bl(n,nCov,model))}
+    if(model=='bl.fc')      {return(simulate_bl_fc(n,nCov,model))}
     if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model))}
     if(model=='rn')         {return(simulate_rn(n,nCov,model))}
 }

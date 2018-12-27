@@ -57,36 +57,39 @@ summary.eforensics <- function(object, ...)
         
 
     x = object
+    terms = attr(x, "terms")
     if (join.chains) {
         samp = x %>% purrr::map(.x=., ~.x['parameters'][[1]])  %>% do.call(rbind,.)
         HPD = samp %>%
             coda::as.mcmc(.) %>%
             coda::HPDinterval(.) %>%
-            data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.)) %>%
+            data.frame(Parameter = row.names(.), Covariate=terms,., row.names = 1:nrow(.)) %>%
             dplyr::rename(HPD.lower = lower, HPD.upper = upper)  
 
         samp = samp %>%
             coda::as.mcmc(.) %>%
             summary(.) %>%
             .[[1]] %>%
-            data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.))  %>%
+            data.frame(Parameter = row.names(.), Covariate=terms, ., row.names = 1:nrow(.))  %>%
             dplyr::select(Parameter, Mean, SD) %>%
-            dplyr::full_join(., HPD , by=c("Parameter"))  
+            dplyr::full_join(., HPD , by=c("Parameter"))  %>%
+            dplyr::select(Parameter, Covariate, dplyr::everything()) 
     }else{
         samp = list()
         for (i in 1:length(x))
         {
             HPD = x[[i]]$parameters %>%
                 coda::HPDinterval(.) %>%
-                data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.)) %>%
+                data.frame(Parameter = row.names(.), Covariate=terms,., row.names = 1:nrow(.)) %>%
                 dplyr::rename(HPD.lower = lower, HPD.upper = upper)  
             tab = x[[i]]$parameters %>%
                 summary(.) %>%
                 .[[1]] %>%
-                data.frame(Parameter = row.names(.), ., row.names = 1:nrow(.))  %>%
+                data.frame(Parameter = row.names(.), Covariate=terms, ., row.names = 1:nrow(.))  %>%
                 dplyr::select(Parameter, Mean, SD) %>%
                 dplyr::full_join(., HPD , by=c("Parameter"))  
-            samp[[i]] = tab
+            samp[[i]] = tab %>%
+            dplyr::select(Parameter, Covariate, dplyr::everything()) 
         }
         names(samp) = paste0('Chain ', 1:length(x)) 
     }

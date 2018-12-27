@@ -4,13 +4,21 @@
 \alias{eforensics}
 \title{Election Forensics Finite Mixture Model}
 \usage{
-eforensics(formula1, formula2, data, weights, mcmc, model, parameters = NULL,
-  na.action = "exclude")
+eforensics(formula1, formula2, formula3, formula4, formula5, formula6, data,
+  weights, mcmc, model, parameters = NULL, na.action = "exclude")
 }
 \arguments{
-\item{formula1}{an object of the class \code{formula} as used in \code{\link{lm}}. The independent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})}
+\item{formula1}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})}
 
-\item{formula2}{an object of the class \code{formula} as used in \code{\link{lm}}. The independent variable must the abstention , whose format must be same as the independent variable in \code{formula1}}
+\item{formula2}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the abstention , whose format must be same as the independent variable in \code{formula1}}
+
+\item{formula3}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud manufactured (mu.iota.m) and it is latent.}
+
+\item{formula4}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud stolen (mu.iota.s) and it is latent.}
+
+\item{formula5}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud manufactured (mu.chi.m) and it is latent.}
+
+\item{formula6}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud stolen (mu.chi.s) and it is latent.}
 
 \item{data}{a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, it must contain also a variable \code{N} which must be an integer with the number of elegible voters}
 

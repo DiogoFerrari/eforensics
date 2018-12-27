@@ -40,7 +40,8 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     if(model == 'normal_sep')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
     if(model == 'rn_no_alpha_sep')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
-    if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'bl.fc')       parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
 
     if(all) parameters = c(parameters, 'Z')
 
@@ -60,6 +61,7 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
+    if (model == 'bl.fc')       return(bl_cov())
 
 }
 
@@ -107,8 +109,12 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' This function estimates a finite mixture model of election fraud
 #'
 #'
-#' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The independent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})
-#' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The independent variable must the abstention , whose format must be same as the independent variable in \code{formula1}
+#' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})
+#' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the abstention , whose format must be same as the independent variable in \code{formula1}
+#' @param formula3 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud manufactured (mu.iota.m) and it is latent. 
+#' @param formula4 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud stolen (mu.iota.s) and it is latent.
+#' @param formula5 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud manufactured (mu.chi.m) and it is latent.
+#' @param formula6 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud stolen (mu.chi.s) and it is latent.
 #' @param data a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, it must contain also a variable \code{N} which must be an integer with the number of elegible voters
 #' @param weights (not used)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
@@ -120,34 +126,62 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #'
 #' @export
 ## }}}
-eforensics   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
+eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
 {
-
     ## error handling
     check_mcmc(mcmc)
-
     options(warn=-1)
     on.exit(options(warn=0))
     ## check if JAGS is installed
     ef_check_jags()
+
+    ## constructing formulas 3 to 6 placeholder in the data for the latent variables mu.iota.s, mu.iota.m, mu.chi.s, mu.chi.m. This is needed to construct the design matrix
+    data$mu.iota.m = 1
+    data$mu.iota.s = 1
+    data$mu.chi.m = 1
+    data$mu.chi.s = 1
     
     ## ## construct the regression matrices (data.frames) based on the formula provided
     ## ## -----------------------------------------------------------------------------
     func.call <- match.call(expand.dots = FALSE)
+    ## votes for the winner
     mat     = getRegMatrix(func.call, data, weights, formula_number=1)
     w       = mat$y
     Xw      = mat$X
     weightw = mat$w
+    ## abstention
     mat     = getRegMatrix(func.call, data, weights, formula_number=2)
     a       = mat$y
     Xa      = mat$X
     weighta = mat$w
-    if(model == 'bl'){
-        data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w), N = data$N)
-    }else{
-        data    = list(w = w, a = a, Xa = as.matrix(Xa), Xw = as.matrix(Xw), dxw = ncol(Xw), dxa = ncol(Xa), n = length(w))
+    ## incremental fraud manufactures (mu.iota.m)
+    mat      = getRegMatrix(func.call, data, weights, formula_number=3)
+    X.iota.m = mat$X
+    weighta  = mat$w
+    ## incremental fraud stolen (mu.iota.s)
+    mat      = getRegMatrix(func.call, data, weights, formula_number=4)
+    X.iota.s = mat$X
+    weighta  = mat$w
+    ## incremental fraud manufactures (mu.chi.m)
+    mat      = getRegMatrix(func.call, data, weights, formula_number=5)
+    X.chi.m = mat$X
+    weighta  = mat$w
+    ## incremental fraud stolen (mu.chi.s)
+    mat      = getRegMatrix(func.call, data, weights, formula_number=6)
+    X.chi.s = mat$X
+    weighta  = mat$w
+    dat    = list(w = w, a = a,
+                  Xa       = as.matrix(Xa)      , dxa       = ncol(Xa), 
+                  Xw       = as.matrix(Xw)      , dxw       = ncol(Xw), 
+                  X.iota.s = as.matrix(X.iota.s), dx.iota.s = ncol(X.iota.s),
+                  X.iota.m = as.matrix(X.iota.m), dx.iota.m = ncol(X.iota.m),
+                  X.chi.s  = as.matrix(X.chi.s),  dx.chi.s  = ncol(X.chi.s),
+                  X.chi.m  = as.matrix(X.chi.m),  dx.chi.m  = ncol(X.chi.m),
+                  n = length(w))
+    if('N' %in% names(data)){
+        dat$N = data$N
     }
-
+    data = dat
     ## get parameters to monitor
     ## -------------------------
     if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
@@ -182,6 +216,7 @@ eforensics   <- function(formula1, formula2, data, weights, mcmc, model, paramet
     attr(samples, "formula.w") = formula1
     attr(samples, "formula.a") = formula2
     attr(samples, "model")     = model.name
+    attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), rep("", 3))
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)
