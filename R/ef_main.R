@@ -61,7 +61,12 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
+<<<<<<< ours
     if (model == 'bl.fc')       return(bl_cov())
+=======
+    ## temp
+    if (model == 'rn_non_scaled')          return(rn_non_scaled())
+>>>>>>> theirs
 
 }
 
