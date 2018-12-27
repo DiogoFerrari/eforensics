@@ -30,18 +30,42 @@ create_list <- function(samples)
 
 ef_get_parameters_to_monitor <- function(model, all=FALSE)
 {
-    if(model == 'rn')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_scaled') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'normal')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_alpha')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
+    ## Restricted normal models
+    ## ------------------------
+    if(model == 'rn')                  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'normal')              parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_alpha')         parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
-    if(model == 'rn_sep')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_scaled_sep') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'normal_sep')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_alpha_sep')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
+    if(model == 'rn_sep')              parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'normal_sep')          parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_alpha_sep')     parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
-    if(model == 'bl')           parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
-    if(model == 'bl.fc')       parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    if(model == 'rn_no_scaled')        parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn_no_scaled_sep')    parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+
+    ## binomial models
+    ## ---------------
+    if(model == 'bl')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'bl.fc')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+
+    ## overdispersion model (beta binomial)
+    ## --------------------
+    #if(model == 'bbl')                parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","nf.var")
+    if(model == 'bbl')                 parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s", "iota.m.beta","iota.s.beta","chi.m.beta","chi.s.beta","mu.tau.beta","mu.nu.beta")
+
+    ## varying dimension models
+    ## ------------------------
+    if(model == 'bl.vd')               parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","psi.i")
+    
+    if(model == 'rn.vd')               parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_scaled.vd')     parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'normal.vd')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_alpha.vd')      parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s", "psi.i")
+    
+    if(model == 'rn_sep.vd')           parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_scaled_sep.vd') parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'normal_sep.vd')       parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha", "psi.i")
+    if(model == 'rn_no_alpha_sep.vd')  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s", "psi.i")
 
     if(all) parameters = c(parameters, 'Z')
 
@@ -61,12 +85,21 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
-<<<<<<< ours
     if (model == 'bl.fc')       return(bl_cov())
-=======
-    ## temp
-    if (model == 'rn_non_scaled')          return(rn_non_scaled())
->>>>>>> theirs
+
+    if (model == 'bbl')          return(bbl())
+  
+    if (model == 'bl.vd')       return(bl.vd())
+    
+    if (model == 'rn.vd')           return(rn.vd())
+    if (model == 'rn_no_scaled.vd') return(rn_no_scaled.vd())
+    if (model == 'normal.vd')       return(normal.vd())
+    if (model == 'rn_no_alpha.vd')  return(rn_no_alpha.vd())
+    
+    if (model == 'rn_sep.vd')           return(rn_sep.vd())
+    if (model == 'rn_no_scaled_sep.vd') return(rn_no_scaled_sep.vd())
+    if (model == 'normal_sep.vd')       return(normal_sep.vd())
+    if (model == 'rn_no_alpha_sep.vd')  return(rn_no_alpha_sep.vd())
 
 }
 
@@ -120,18 +153,20 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @param formula4 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud stolen (mu.iota.s) and it is latent.
 #' @param formula5 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud manufactured (mu.chi.m) and it is latent.
 #' @param formula6 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud stolen (mu.chi.s) and it is latent.
-#' @param data a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, it must contain also a variable \code{N} which must be an integer with the number of elegible voters
+#' @param data a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, the it is necessary to provide the total number of elegible voters (see parameter \code{elegible.voters})
+#' @param elegible.voters string with the name of the variable in the data that contains the number of elegible voters. Default is \code{NULL}, but it is required if the independent variables (voters for the winner and abstention) are counts
 #' @param weights (not used)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
 #' @param model a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.
 #' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
+#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
 #' @export
 ## }}}
-eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
+eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters=NULL, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000)
 {
     ## error handling
     check_mcmc(mcmc)
@@ -159,6 +194,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     a       = mat$y
     Xa      = mat$X
     weighta = mat$w
+
     ## incremental fraud manufactures (mu.iota.m)
     mat      = getRegMatrix(func.call, data, weights, formula_number=3)
     X.iota.m = mat$X
@@ -183,8 +219,9 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
                   X.chi.s  = as.matrix(X.chi.s),  dx.chi.s  = ncol(X.chi.s),
                   X.chi.m  = as.matrix(X.chi.m),  dx.chi.m  = ncol(X.chi.m),
                   n = length(w))
-    if('N' %in% names(data)){
-        dat$N = data$N
+    if(!is.null(elegible.voters)){
+        data = data %>% dplyr::rename(elegible.voters == !elegible.voters) 
+        dat$N = data$elegible.voters
     }
     data = dat
     ## get parameters to monitor
@@ -208,8 +245,14 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     ## ----
     time.init    = Sys.time()
     cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
-    cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim)
+    cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim, n.iter = mcmc$burn.in)
     cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
+    T.mcmc = Sys.time() - time.init
+    if(get.dic != 0){
+        cat('\nDrawing DIC samples...\n') ; dic.samples = rjags::dic.samples(model=sim, n.iter=get.dic, type = "popt")
+    }else{
+        dic.samples = NULL
+    }
     T.mcmc = Sys.time() - time.init
 
     if(!is.null(parameters) & "Z" %in% parameters)
@@ -222,6 +265,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     attr(samples, "formula.a") = formula2
     attr(samples, "model")     = model.name
     attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), rep("", 3))
+    attr(samples, "dic")       = dic.samples
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)

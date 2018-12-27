@@ -77,6 +77,98 @@ bl <- function()
 "
 }
 
+bl.vd <- function()
+{
+  "model{
+  ## Constants
+  ## ---------
+  k         = .7
+  for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2]
+
+  for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.tau[i]  <- 0                       
+  for (j in 1:dxa) {
+  sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.nu[i]   <- 0
+  for (j in 1:dxw) {
+  sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  
+  ## Hyperpriors
+  ## -----------
+  beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+  beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+  
+  mu.iota.m   ~ dunif(0,k)
+  mu.iota.s   ~ dunif(0,k)
+  mu.chi.m    ~ dunif(k,1)
+  mu.chi.s    ~ dunif(k,1)
+  
+  for(j in 1:n){
+  ## linear transformation of the parameters of tau and nu
+  mu.tau[j] <- 1/(1 + exp( - (inprod(beta.tau,Xa[j,]) ) ) )
+  mu.nu[j]  <- 1/(1 + exp( - (inprod(beta.nu, Xw[j,]) ) ) )
+  
+  ## Priors
+  ## ------
+  Zn[j] ~ dunif(0,1)
+  Zn1[j] <- ifelse(Zn[j] <= pi1, 0, 1)
+  Zn2[j] <- ifelse(Zn[j] > pi2, 1 , 0)
+  Z[j]  <-  Zn1[j] + Zn2[j] + 1
+  
+  ## Set success probability for each iota (incremental fraue) and chi (extreme fraud) for both cases os manufactured and stolen votes
+  N.iota.s[j] ~ dbin(mu.iota.s,N[j])
+  N.iota.m[j] ~ dbin(mu.iota.m,N[j])
+  N.chi.s[j]  ~ dbin(mu.chi.s, N[j])
+  N.chi.m[j]  ~ dbin(mu.chi.m, N[j])
+  ## Computing the propostions
+  iota.m[j] <- ifelse( N.iota.m[j]/N[j] == 1, .999, N.iota.m[j]/N[j]) 		## avoiding 1's in order to compute w.check
+  iota.s[j] <- N.iota.s[j]/N[j]
+  chi.m[j]  <- ifelse( N.chi.m[j]/N[j] == 1, .999, N.chi.m[j]/N[j])		## avoiding 1's in order to compute w.check
+  chi.s[j]  <- N.chi.s[j]/N[j]
+  
+  ## ## Given alpha, use that as the success probability and draw a and w from binomial distribution
+  ## N.tau[j]  ~ dbin(mu.tau[j], N[j])  ## counts for turnout 
+  ## N.nu[j]   ~ dbin(mu.nu[j] ,N[j])   ## counts for votes for the winner 
+  ## ## Computing the propostions
+  ## tau[j]  <- N.tau[j]/N[j]
+  ## nu[j]   <- N.nu[j] /N[j]
+  
+  ## Data model
+  ## ----------
+  p.a[j] = (Z[j] == 1) * (1 - mu.tau[j]) +
+  (Z[j] == 2) * (1 - mu.tau[j]) * (1 - iota.m[j]) +
+  (Z[j] == 3) * (1 - mu.tau[j]) * (1 - chi.m[j])
+  
+  p.w[j]  = (Z[j] == 1) * ( mu.nu[j] * (1 - a[j]/N[j]) ) +
+  (Z[j] == 2) * ( mu.nu[j] * ( (1-iota.s[j]) / (1-iota.m[j]) )*( 1-iota.m[j]-a[j]/N[j]) + a[j]/N[j] * ( (iota.m[j] - iota.s[j]) / (1-iota.m[j]) ) + iota.s[j] ) +
+  (Z[j] == 3) * ( mu.nu[j] * ( (1-chi.s[j]) /  (1-chi.m[j])  )*( 1-chi.m[j] -a[j]/N[j]) + a[j]/N[j] * ( (chi.m[j] - chi.s[j]  ) / (1-chi.m[j])  ) + chi.s[j]  )
+  
+  ## Likelihood
+  a[j] ~ dbin(p.a[j],N[j])
+  w[j] ~ dbin(p.w[j],N[j])
+  }
+}
+"
+}
+
 
 bl_cov <- function()
 {
@@ -1138,3 +1230,1078 @@ model{
 } "
    invisible(model)
 }
+
+##=====================================================
+## varying dimensions models
+##=====================================================
+
+## =====================================================
+## restricted normals
+## =====================================================
+
+
+rn.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ## zeros[i] <- 0
+  ones[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 1000             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+}
+for (i in 1:3){
+  psi.i[i] ~ dbin(psi.p[i],1)
+  psi.v[i] ~ dgamma(1,1)
+  psi[i] <- psi.i[i]*psi.v[i]
+}
+
+for(i in 1:3){
+  pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+}
+pi1 <- pi[1]
+pi2 <- pi[1] + pi[2]   
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------                        
+## mixing probabilities
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.1)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.1)
+## sigma.tau	 ~ dunif(0,.1)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- (0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (  (dnorm(g.inv.tau.scaled[i], 0, 1)*detJ.a.inv[i]) / ( sigma.tau * k.tau[i] )  )
+f.w[i]   <- (0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (  (dnorm(g.inv.nu.scaled[i] , 0, 1)*detJ.w.inv[i]) / ( sigma.nu  * k.nu[i]  )  )
+f.w.a[i] <- ( f.a[i] * f.w[i] ) / M
+
+ones[i] ~ dbern(f.w.a[i])
+
+
+
+}
+} 
+"}
+
+
+normal.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ones[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+  psi.p[i] <- ifelse(i == 1, 1, .5)
+}
+for (i in 1:3){
+  psi.i[i] ~ dbin(psi.p[i],1)
+  psi.v[i] ~ dgamma(1,1)
+  psi[i] <- psi.i[i]*psi.v[i]
+}
+
+for(i in 1:3){
+  pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+}
+pi1 <- pi[1]
+pi2 <- pi[1] + pi[2]   
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.1)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.1)
+## sigma.tau	 ~ dunif(0,.1)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- (0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (dnorm(g.inv.tau.scaled[i], 0, 1))
+f.w[i]   <- (0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (dnorm(g.inv.nu.scaled[i] , 0, 1))
+f.w.a[i] <- ( f.a[i] * f.w[i] ) / M
+
+ones[i] ~ dbern(f.w.a[i])
+
+
+
+}
+} 
+"}
+
+
+rn_no_scaled.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ## zeros[i] <- 0
+  ones[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+  psi.p[i] <- ifelse(i == 1, 1, .5)
+}
+for (i in 1:3){
+  psi.i[i] ~ dbin(psi.p[i],1)
+  psi.v[i] ~ dgamma(1,1)
+  psi[i] <- psi.i[i]*psi.v[i]
+}
+
+for(i in 1:3){
+  pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+}
+pi1 <- pi[1]
+pi2 <- pi[1] + pi[2]   
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.5)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.5)
+## sigma.tau	 ~ dunif(0,.5)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- (0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (  (dnorm(g.inv.tau.scaled[i], 0, 1)) / ( sigma.tau * k.tau[i] )  )
+f.w[i]   <- (0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (  (dnorm(g.inv.nu.scaled[i] , 0, 1)) / ( sigma.nu  * k.nu[i]  )  )
+f.w.a[i] <- ( f.a[i] * f.w[i] ) / M
+
+ones[i] ~ dbern(f.w.a[i])
+
+
+
+}
+} 
+"}
+
+
+rn_no_alpha.vd <- function()
+{
+  model = "
+  data{
+  for(i in 1:n){
+  ones[i]  <- 1
+  }
+  }
+  model{
+  ## Constants
+  ## ---------
+  M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+  k         = .7
+  a.alpha	  = 1
+  b.alpha	  = 1
+  a.sigma	  = 1
+  b.sigma	  = 1
+  for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2]   
+  for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.tau[i]  <- 0                       
+  for (j in 1:dxa) {
+  sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.nu[i]   <- 0
+  for (j in 1:dxw) {
+  sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  
+  ## Hyperpriors
+  ## -----------
+  
+  beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+  beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+  sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+  sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+  
+  
+  mu.iota.m	~ dunif(0,k)
+  mu.iota.s	~ dunif(0,k)
+  mu.chi.m	~ dunif(k,1)
+  mu.chi.s	~ dunif(k,1)
+  sigma.iota.m	~ dgamma(a.sigma, b.sigma)
+  sigma.iota.s    ~ dgamma(a.sigma, b.sigma)
+  sigma.chi.m     = 0.075
+  sigma.chi.s     = 0.075
+  
+  
+  for(i in 1:n){
+  ## linear transformation of the parameters of tau and nu
+  mu.tau[i]   = inprod(beta.tau, Xa[i,])
+  mu.nu[i]    = inprod(beta.nu , Xw[i,])
+  
+  ## Priors
+  ## ------        
+  Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+  
+  iota.m[i]  ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)            ## truncated normal
+  iota.s[i]  ~  dnorm(mu.iota.s , 1/pow(sigma.iota.s,2)) T(0,.9999)            ## truncated normal
+  chi.m[i]   ~  dnorm(mu.chi.m  , 1/pow(sigma.chi.m,2) ) T(0,.9999)
+  chi.s[i]   ~  dnorm(mu.chi.s  , 1/pow(sigma.chi.s,2) ) T(0,.9999)
+  
+  ## Data model
+  ## ----------
+  tau[i] <-   (Z[i] == 1) * (1 -  min(a[i],.9999) ) +           
+  (Z[i] == 2) * (1 - (min(a[i], .9999)/(1 - iota.m[i])) ) +
+  (Z[i] == 3) * (1 - (min(a[i], .9999)/(1 - chi.m[i] )) ) 
+  nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+  (Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.s[i])) - iota.s[i]/(1 - iota.s[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.s[i])) ) +
+  (Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.s[i]) ) - chi.s[i] /(1 - chi.s[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.s[i])) )
+  
+  ## k.tau[i] <-  pnorm(1, mu.tau[i], 1/(sigma.tau^2)) - pnorm(0, mu.tau[i], 1/(sigma.tau^2)) 
+  ## k.nu[i]  <-  pnorm(1, mu.nu[i],  1/(sigma.nu^2))  - pnorm(0, mu.nu[i],  1/(sigma.nu^2))  
+  
+  ## p.tau[i] <- (0 <= tau[i] && tau[i] <=1) * dnorm(tau[i], mu.tau[i], 1/(sigma.tau^2)) / k.tau[i]
+  ## p.nu[i]  <- (0 <= nu[i]  && nu[i]  <=1) * dnorm(nu[i] , mu.nu[i] , 1/(sigma.nu^2) ) / k.nu[i]
+  ## p[i]     <- ( p.tau[i] * p.nu[i] ) / M
+  
+  tau.scaled[i] = (tau[i] - mu.tau[i]) / sigma.tau
+  b.tau[i]      = (  1    - mu.tau[i]) / sigma.tau
+  a.tau[i]      = (  0    - mu.tau[i]) / sigma.tau
+  nu.scaled[i]  = (nu[i]  - mu.nu[i]) / sigma.nu
+  b.nu[i]       = (  1    - mu.nu[i]) / sigma.nu
+  a.nu[i]       = (  0    - mu.nu[i]) / sigma.nu
+  
+  k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+  k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+  
+  p.tau[i] <- (0 <= tau[i] && tau[i] <=1) * (  dnorm(tau.scaled[i], 0, 1) / ( sigma.tau * k.tau[i] )  )
+  p.nu[i]  <- (0 <= nu[i]  && nu[i]  <=1) * (  dnorm(nu.scaled[i] , 0, 1) / ( sigma.nu  * k.nu[i]  )  )
+  p[i]     <- ( p.tau[i] * p.nu[i] ) / M
+  
+  ones[i] ~ dbern(p[i])
+  
+  
+  }
+  
+  
+  } "
+   invisible(model)
+}
+
+## --------------------
+## separted likelihoods
+## --------------------
+
+
+
+rn_sep.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ones.w[i] <- 1
+  ones.a[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2]
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.1)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.1)
+## sigma.tau	 ~ dunif(0,.1)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- ((0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (  (dnorm(g.inv.tau.scaled[i], 0, 1)*detJ.a.inv[i]) / ( sigma.tau * k.tau[i] )  )) / M
+f.w[i]   <- ((0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (  (dnorm(g.inv.nu.scaled[i] , 0, 1)*detJ.w.inv[i]) / ( sigma.nu  * k.nu[i]  )  )) / M
+
+ones.w[i] ~ dbern(f.a[i])
+ones.a[i] ~ dbern(f.w[i])
+
+
+
+}
+} 
+"}
+
+
+normal_sep.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ones.w[i] <- 1
+  ones.a[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2] 
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.1)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.1)
+## sigma.tau	 ~ dunif(0,.1)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- ( (0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (dnorm(g.inv.tau.scaled[i], 0, 1) ) )/M
+f.w[i]   <- ( (0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (dnorm(g.inv.nu.scaled[i] , 0, 1) ) )/M
+
+ones.w[i] ~ dbern(f.a[i])
+ones.a[i] ~ dbern(f.w[i])
+
+}
+} 
+"}
+
+
+rn_no_scaled_sep.vd <- function()
+{
+  "data{
+  for(i in 1:n){
+  ones.w[i] <- 1
+  ones.a[i] <- 1
+  }
+}
+model{
+## Constants
+## ---------
+M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+k         = .7
+a.alpha	  = 1
+b.alpha	  = 1
+a.sigma	  = 1
+b.sigma	  = 1
+for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2]  
+for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.tau[i]  <- 0                       
+for (j in 1:dxa) {
+sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+}
+}
+for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+mu.beta.nu[i]   <- 0
+for (j in 1:dxw) {
+sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+}
+}
+
+## Hyperpriors
+## -----------
+beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+alpha	         ~ dgamma(a.alpha, b.alpha)
+
+sigma.iota.m	 ~ dgamma(a.sigma, b.sigma)
+sigma.chi        = 0.075
+sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+
+## sigma.iota.m	 ~ dunif(0,.5)
+## sigma.chi        = 0.075
+## sigma.nu	 ~ dunif(0,.5)
+## sigma.tau	 ~ dunif(0,.5)
+
+mu.iota.m		~ dunif(0,k)
+mu.chi.m		~ dunif(k,1)
+
+for(i in 1:n){
+## linear transformation of the parameters of tau and nu
+mu.tau[i]   = inprod(beta.tau, Xa[i,])
+mu.nu[i]    = inprod(beta.nu , Xw[i,])
+
+## Priors
+## ------        
+Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+
+iota.m[i]     ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)     
+chi.m[i]      ~  dnorm(mu.chi.m  , 1/pow(sigma.chi,2) ) T(0,.9999)
+iota.alpha[i] <- pow(iota.m[i], alpha)
+chi.alpha[i]  <- pow(chi.m[i], alpha)
+
+## Data model
+## ----------
+detJ.a.inv[i] <-  (Z[i] == 1) *  1   +
+(Z[i] == 2) * ( 1/(1 - iota.m[i])  ) +
+(Z[i] == 3) * ( 1/(1 - chi.m[i])  )
+detJ.w.inv[i] <-  (Z[i] == 1) * ( 1/ (1 - min(a[i],.9999)) ) +
+(Z[i] == 2) * ( (1 - iota.m[i])/( (1 - iota.alpha[i])*(1 - iota.m[i] - a[i]) ) ) +
+(Z[i] == 3) * ( (1 - chi.m[i]) /( (1 - chi.alpha[i] )*(1 - chi.m[i]  - a[i]) ) ) 
+
+g.inv.tau[i] <-   (Z[i] == 1) * (1 -  a[i] ) +           
+(Z[i] == 2) * (1 - a[i]/(1 - iota.m[i]) )  +
+(Z[i] == 3) * (1 - a[i]/(1 - chi.m[i] ) ) 
+g.inv.nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+(Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.alpha[i])) - iota.alpha[i]/(1 - iota.alpha[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.alpha[i])) ) +
+(Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.alpha[i]) ) - chi.alpha[i] /(1 - chi.alpha[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.alpha[i])) )
+
+g.inv.tau.scaled[i] = (g.inv.tau[i] - mu.tau[i]) / sigma.tau
+b.tau[i]            = (  1    - mu.tau[i]) / sigma.tau
+a.tau[i]            = (  0    - mu.tau[i]) / sigma.tau
+g.inv.nu.scaled[i]  = (g.inv.nu[i]  - mu.nu[i])  / sigma.nu
+b.nu[i]             = (  1    - mu.nu[i])  / sigma.nu
+a.nu[i]             = (  0    - mu.nu[i])  / sigma.nu
+
+k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+
+f.a[i]   <- ( (0 <= g.inv.tau[i] && g.inv.tau[i] <=1) * (  (dnorm(g.inv.tau.scaled[i], 0, 1)) / ( sigma.tau * k.tau[i] )  ) ) /M
+f.w[i]   <- ( (0 <= g.inv.nu[i]  && g.inv.nu[i]  <=1) * (  (dnorm(g.inv.nu.scaled[i] , 0, 1)) / ( sigma.nu  * k.nu[i]  )  ) ) /M
+
+ones.w[i] ~ dbern(f.a[i])
+ones.a[i] ~ dbern(f.w[i])
+
+
+
+}
+} 
+"}
+
+
+rn_no_alpha_sep.vd <- function()
+{
+  model = "
+  data{
+  for(i in 1:n){
+  ones.w[i] <- 1
+  ones.a[i] <- 1
+  }
+  }
+  model{
+  ## Constants
+  ## ---------
+  M	  = 10             ## auxiliary variable for the zero trick (makes the - loglikelihood > 0)
+  k         = .7
+  a.alpha	  = 1
+  b.alpha	  = 1
+  a.sigma	  = 1
+  b.sigma	  = 1
+  for(i in 1:3){
+    psi.p[i] <- ifelse(i == 1, 1, .5)
+  }
+  for (i in 1:3){
+    psi.i[i] ~ dbin(psi.p[i],1)
+    psi.v[i] ~ dgamma(1,1)
+    psi[i] <- psi.i[i]*psi.v[i]
+  }
+
+  for(i in 1:3){
+    pi[i]	         <-  psi[i]/sum(psi[1:3]) ## mixing probabilities
+  }
+  pi1 <- pi[1]
+  pi2 <- pi[1] + pi[2]  
+  for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.tau[i]  <- 0                       
+  for (j in 1:dxa) {
+  sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.nu[i]   <- 0
+  for (j in 1:dxw) {
+  sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  
+  ## Hyperpriors
+  ## -----------
+  
+  beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+  beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+  sigma.nu	 ~ dgamma(a.sigma, b.sigma)
+  sigma.tau	 ~ dgamma(a.sigma, b.sigma)
+  
+  
+  mu.iota.m	~ dunif(0,k)
+  mu.iota.s	~ dunif(0,k)
+  mu.chi.m	~ dunif(k,1)
+  mu.chi.s	~ dunif(k,1)
+  sigma.iota.m	~ dgamma(a.sigma, b.sigma)
+  sigma.iota.s    ~ dgamma(a.sigma, b.sigma)
+  sigma.chi.m     = 0.075
+  sigma.chi.s     = 0.075
+  
+  
+  for(i in 1:n){
+  ## linear transformation of the parameters of tau and nu
+  mu.tau[i]   = inprod(beta.tau, Xa[i,])
+  mu.nu[i]    = inprod(beta.nu , Xw[i,])
+  
+  ## Priors
+  ## ------        
+  Zn[i] ~ dunif(0,1)
+  Zn1[i] <- ifelse(Zn[i] <= pi1, 0, 1)
+  Zn2[i] <- ifelse(Zn[i] > pi2, 1 , 0)
+  Z[i]  <-  Zn1[i] + Zn2[i] + 1
+  
+  iota.m[i]  ~  dnorm(mu.iota.m , 1/pow(sigma.iota.m,2)) T(0,.9999)            ## truncated normal
+  iota.s[i]  ~  dnorm(mu.iota.s , 1/pow(sigma.iota.s,2)) T(0,.9999)            ## truncated normal
+  chi.m[i]   ~  dnorm(mu.chi.m  , 1/pow(sigma.chi.m,2) ) T(0,.9999)
+  chi.s[i]   ~  dnorm(mu.chi.s  , 1/pow(sigma.chi.s,2) ) T(0,.9999)
+  
+  ## Data model
+  ## ----------
+  tau[i] <-   (Z[i] == 1) * (1 -  min(a[i],.9999) ) +           
+  (Z[i] == 2) * (1 - (min(a[i], .9999)/(1 - iota.m[i])) ) +
+  (Z[i] == 3) * (1 - (min(a[i], .9999)/(1 - chi.m[i] )) ) 
+  nu[i]  <-   (Z[i] == 1) * ( w[i]*(1/(1 - min(a[i], .9999))) ) +
+  (Z[i] == 2) * ( w[i]*(1/(1 - iota.m[i] - min(a[i], .9999)))*((1 - iota.m[i])/(1-iota.s[i])) - iota.s[i]/(1 - iota.s[i]) - (a[i]*iota.m[i]) / ((1 - iota.m[i] - min(a[i], .9999))*(1-iota.s[i])) ) +
+  (Z[i] == 3) * ( w[i]*(1/(1 - chi.m[i]  - min(a[i], .9999)))*((1 - chi.m[i]) /(1-chi.s[i]) ) - chi.s[i] /(1 - chi.s[i])  - (a[i]*chi.m[i])  / ((1 - chi.m[i]  - min(a[i], .9999))*(1-chi.s[i])) )
+  
+  ## k.tau[i] <-  pnorm(1, mu.tau[i], 1/(sigma.tau^2)) - pnorm(0, mu.tau[i], 1/(sigma.tau^2)) 
+  ## k.nu[i]  <-  pnorm(1, mu.nu[i],  1/(sigma.nu^2))  - pnorm(0, mu.nu[i],  1/(sigma.nu^2))  
+  
+  ## p.tau[i] <- (0 <= tau[i] && tau[i] <=1) * dnorm(tau[i], mu.tau[i], 1/(sigma.tau^2)) / k.tau[i]
+  ## p.nu[i]  <- (0 <= nu[i]  && nu[i]  <=1) * dnorm(nu[i] , mu.nu[i] , 1/(sigma.nu^2) ) / k.nu[i]
+  ## p[i]     <- ( p.tau[i] * p.nu[i] ) / M
+  
+  tau.scaled[i] = (tau[i] - mu.tau[i]) / sigma.tau
+  b.tau[i]      = (  1    - mu.tau[i]) / sigma.tau
+  a.tau[i]      = (  0    - mu.tau[i]) / sigma.tau
+  nu.scaled[i]  = (nu[i]  - mu.nu[i]) / sigma.nu
+  b.nu[i]       = (  1    - mu.nu[i]) / sigma.nu
+  a.nu[i]       = (  0    - mu.nu[i]) / sigma.nu
+  
+  k.tau[i] <-  pnorm(b.tau[i], 0, 1) - pnorm(a.tau[i], 0, 1) 
+  k.nu[i]  <-  pnorm(b.nu[i] , 0, 1) - pnorm(a.nu[i] , 0, 1)  
+  
+  p.tau[i] <- ( (0 <= tau[i] && tau[i] <=1) * (  dnorm(tau.scaled[i], 0, 1) / ( sigma.tau * k.tau[i] )  ) ) / M
+  p.nu[i]  <- ( (0 <= nu[i]  && nu[i]  <=1) * (  dnorm(nu.scaled[i] , 0, 1) / ( sigma.nu  * k.nu[i]  )  ) ) / M
+  
+  ones.w[i] ~ dbern(p.tau[i])
+  ones.a[i] ~ dbern(p.nu[i])
+  
+  
+  }
+  
+  
+  } "
+   invisible(model)
+}
+
+
+bbl <- function()
+{
+  "model{
+  ## Constants
+  ## ---------
+  k         = .7
+  for (i in 1:3){
+  psi[i]<-1             ## parameters of the dist of the mixing probabilities  
+  }   
+  for (i in 1:dxa) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.tau[i]  <- 0                       
+  for (j in 1:dxa) {
+  sigma.beta.tau[i,j] <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  for (i in 1:dxw) {        ## d is the number of covars, and if it is zero, we use only the intercept. That is why we add 1 here
+  mu.beta.nu[i]   <- 0
+  for (j in 1:dxw) {
+  sigma.beta.nu[i,j]  <- ifelse(i == j, 10^(2), 0)
+  }
+  }
+  
+  ## Hyperpriors
+  ## -----------
+  pi	         ~ ddirch( psi )                        ## mixing probabilities
+  beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)  ## linear coefficients of expectation of turnout
+  beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)    ## linear coefficients of expectation of votes for the winner
+  
+  mu.iota.m   ~ dunif(.0001,k)
+  mu.iota.s   ~ dunif(.0001,k)
+  mu.chi.m    ~ dunif(k,.9999)
+  mu.chi.s    ~ dunif(k,.9999)
+
+  iota.m.beta ~ dgamma(.001,.001)T(1,)
+  iota.s.beta ~ dgamma(.001,.001)T(1,)
+  chi.m.beta ~ dgamma(.001,.001)T(1,)
+  chi.s.beta ~ dgamma(.001,.001)T(1,)
+  mu.tau.beta ~ dgamma(.001,.001)T(1,)
+  mu.nu.beta ~ dgamma(.001,.001)T(1,)
+
+  for(j in 1:n){
+  ## linear transformation of the parameters of tau and nu
+  mu.tau.i[j] <- 1/(1 + exp( - (inprod(beta.tau,Xa[j,]) ) ) )
+  mu.nu.i[j]  <- 1/(1 + exp( - (inprod(beta.nu, Xw[j,]) ) ) )
+  
+  mu.tau.i.alpha[j] <- (mu.tau.beta*mu.tau.i[j])/(1 - mu.tau.i[j])
+  mu.nu.i.alpha[j] <- (mu.nu.beta*mu.nu.i[j])/(1 - mu.nu.i[j])
+
+  mu.tau[j] ~ dbeta(mu.tau.i.alpha[j],mu.tau.beta)
+  mu.nu[j] ~ dbeta(mu.nu.i.alpha[j],mu.nu.beta)
+  
+ 
+
+  ## Priors
+  ## ------
+  Z[j]      ~ dcat( pi )
+  
+  ## Set success probability for each iota (incremental fraud) and chi (extreme fraud) for both cases os manufactured and stolen votes
+  iota.m.alpha[j] <- (mu.iota.m*iota.m.beta)/(1 - mu.iota.m)
+  iota.s.alpha[j] <- (mu.iota.s*iota.s.beta)/(1 - mu.iota.s)
+  chi.m.alpha[j] <- (mu.chi.m*chi.m.beta)/(1 - mu.chi.m)
+  chi.s.alpha[j] <- (mu.chi.s*chi.s.beta)/(1 - mu.chi.s)
+  p.iota.m[j] ~ dbeta(iota.m.alpha[j],iota.m.beta)T(.0001,k)
+  p.iota.s[j] ~ dbeta(iota.s.alpha[j],iota.s.beta)T(.0001,k)
+  p.chi.m[j] ~ dbeta(chi.m.alpha[j],chi.m.beta)T(k ,.9999)
+  p.chi.s[j] ~ dbeta(chi.s.alpha[j],chi.s.beta)T(k ,.9999)
+  N.iota.s[j] ~ dbin(p.iota.s[j],N[j])
+  N.iota.m[j] ~ dbin(p.iota.m[j],N[j])
+  N.chi.s[j]  ~ dbin(p.chi.s[j], N[j])
+  N.chi.m[j]  ~ dbin(p.chi.m[j], N[j])
+  ## Computing the propostions
+  iota.m[j] <- ifelse( N.iota.m[j]/N[j] == 1, .999, N.iota.m[j]/N[j]) 		## avoiding 1's in order to compute w.check
+  iota.s[j] <- N.iota.s[j]/N[j]
+  chi.m[j]  <- ifelse( N.chi.m[j]/N[j] == 1, .999, N.chi.m[j]/N[j])		## avoiding 1's in order to compute w.check
+  chi.s[j]  <- N.chi.s[j]/N[j]
+  
+  ## ## Given alpha, use that as the success probability and draw a and w from binomial distribution
+  ## N.tau[j]  ~ dbin(mu.tau[j], N[j])  ## counts for turnout 
+  ## N.nu[j]   ~ dbin(mu.nu[j] ,N[j])   ## counts for votes for the winner 
+  ## ## Computing the propostions
+  ## tau[j]  <- N.tau[j]/N[j]
+  ## nu[j]   <- N.nu[j] /N[j]
+  
+  ## Data model
+  ## ----------
+  p.a[j] <- (Z[j] == 1) * (1 - mu.tau[j]) +
+  (Z[j] == 2) * (1 - mu.tau[j]) * (1 - iota.m[j]) +
+  (Z[j] == 3) * (1 - mu.tau[j]) * (1 - chi.m[j])
+  
+  p.w[j]  <- (Z[j] == 1) * ( mu.nu[j] * (1 - a[j]/N[j]) ) +
+  (Z[j] == 2) * ( mu.nu[j] * ( (1-iota.s[j]) / (1-iota.m[j]) )*( 1-iota.m[j]-a[j]/N[j]) + a[j]/N[j] * ( (iota.m[j] - iota.s[j]) / (1-iota.m[j]) ) + iota.s[j] ) +
+  (Z[j] == 3) * ( mu.nu[j] * ( (1-chi.s[j]) /  (1-chi.m[j])  )*( 1-chi.m[j] -a[j]/N[j]) + a[j]/N[j] * ( (chi.m[j] - chi.s[j]  ) / (1-chi.m[j])  ) + chi.s[j]  )
+
+ 
+
+  ## Likelihood
+  a[j] ~ dbin(p.a[j],N[j])
+  w[j] ~ dbin(p.w[j],N[j])
+  }
+}
+"
+}
+
+
+
