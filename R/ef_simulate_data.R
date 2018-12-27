@@ -1,5 +1,18 @@
+## =====================================================
+## ckecking
+## =====================================================
+check.pi.values <- function(pi){
+    if (sum(pi) != 1) {
+        stop("\npi must add up to 1.\n")
+    }
+}
 
-simulate_bl <- function(n, nCov, model)
+simulate_pi <- function()
+{
+    return(  LaplacesDemon::rdirichlet(1, c(1,1,1)) )
+}
+
+simulate_bl <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -7,7 +20,11 @@ simulate_bl <- function(n, nCov, model)
     k2         = .8
     d         = nCov
 
-    pi        = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    if (is.null(pi)) {
+        pi = simulate_pi()
+    }else{
+        check.pi.values(pi)
+    }
     mu.iota.m = stats::runif(1,0,k1)
     mu.iota.s = stats::runif(1,0,k1)
     mu.chi.m  = stats::runif(1,k2,1)
@@ -73,7 +90,8 @@ simulate_bl <- function(n, nCov, model)
     class(sim_data) = 'eforensics_sim_data'
     return(sim_data)
 }
-simulate_bl_fc <- function(n, nCov, model)
+
+simulate_bl_fc <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -81,7 +99,11 @@ simulate_bl_fc <- function(n, nCov, model)
     k2         = .8
     d         = nCov
 
-    pi          = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    if (is.null(pi)) {
+        pi = simulate_pi()
+    }else{
+        check.pi.values(pi)
+    }
     mu.iota.m   = stats::runif(1,0,k1)
     mu.iota.s   = stats::runif(1,0,k1)
     mu.chi.m    = stats::runif(1,k2,1)
@@ -174,7 +196,8 @@ simulate_bl_fc <- function(n, nCov, model)
     class(sim_data) = 'eforensics_sim_data'
     return(sim_data)
 }
-simulate_rn_no_alpha <- function(n, nCov, model)
+
+simulate_rn_no_alpha <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -182,7 +205,11 @@ simulate_rn_no_alpha <- function(n, nCov, model)
     k2           = .8
     d            = nCov
 
-    pi           = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    if (is.null(pi)) {
+        pi = simulate_pi()
+    }else{
+        check.pi.values(pi)
+    }
 
     mu.iota.m    = stats::runif(1,0,k1)
     mu.iota.s    = stats::runif(1,0,k1)
@@ -253,7 +280,7 @@ simulate_rn_no_alpha <- function(n, nCov, model)
     return(sim_data)
 }
 
-simulate_rn <- function(n, nCov, model)
+simulate_rn <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -262,7 +289,11 @@ simulate_rn <- function(n, nCov, model)
     d          = nCov
 
     alpha      = stats::runif(1, 0,2)
-    pi         = LaplacesDemon::rdirichlet(1, c(1,1,1))
+    if (is.null(pi)) {
+        pi = simulate_pi()
+    }else{
+        check.pi.values(pi)
+    }
 
     mu.iota.m    = stats::runif(1,0,k1)
     mu.chi.m     = stats::runif(1,k2,1)
