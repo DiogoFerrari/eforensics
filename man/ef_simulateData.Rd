@@ -4,7 +4,8 @@
 \alias{ef_simulateData}
 \title{Simulate Election data}
 \usage{
-ef_simulateData(n = 2000, nCov = 0, model)
+ef_simulateData(n = 2000, nCov = 0, model, pi = NULL,
+  overdispersion = 10)
 }
 \arguments{
 \item{n}{integer, the number of sample points representing observations of election units (e.g., precinct, ballot boxes)}
@@ -12,6 +13,10 @@ ef_simulateData(n = 2000, nCov = 0, model)
 \item{nCov}{number of covariates affecting both turnout and votes for the winner in each election unit}
 
 \item{model}{a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.}
+
+\item{pi}{vector with three numbers between 0 and 1 whose sum must add up to 1. If \code{NULL} (default) this vector will be randomly generated}
+
+\item{overdispersion}{numeric, degree of overdispersion of the distributions}
 }
 \value{
 The function returns a list with a data frame with the simulated data and a sublist with the parameters used to generate the data

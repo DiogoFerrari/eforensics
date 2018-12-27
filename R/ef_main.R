@@ -142,6 +142,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 
 
 ## {{{ docs }}}
+
 #' Election Forensics Finite Mixture Model
 #'
 #' This function estimates a finite mixture model of election fraud
@@ -165,6 +166,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
 #' @export
+
 ## }}}
 eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters=NULL, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000)
 {
@@ -220,8 +222,14 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
                   X.chi.m  = as.matrix(X.chi.m),  dx.chi.m  = ncol(X.chi.m),
                   n = length(w))
     if(!is.null(elegible.voters)){
-        data = data %>% dplyr::rename(elegible.voters == !elegible.voters) 
+        data = data %>% dplyr::rename(elegible.voters = !!elegible.voters) 
         dat$N = data$elegible.voters
+    }else{
+        ## check if model use counts, and require elebigle voters
+        ## ------------------------------------------------------
+        if (stringr::str_detect(model, pattern="bl")) {
+            stop("\nThe parameter 'elegible.voters' must be provided for models based on binomial distributions\n\n")
+        }
     }
     data = dat
     ## get parameters to monitor
@@ -235,7 +243,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     model      = get_model(model.name)
 
     ## Debug/Monitoring message --------------------------
-    msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
+    msg <- paste0('\n','Burn-in: ', mcmc$burn.in, '\n'); cat(msg)
     ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
     msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
@@ -304,7 +312,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
 ##     model = get_model(model)
 
 ##     ## Debug/Monitoring message --------------------------
-##     msg <- paste0('\n','Burn-in: ', mcmc$burnin, '\n'); cat(msg)
+##     msg <- paste0('\n','Burn-in: ', mcmc$burn.in, '\n'); cat(msg)
 ##     ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
 ##     msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
 ##     msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)

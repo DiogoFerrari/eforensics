@@ -5,7 +5,8 @@
 \title{Election Forensics Finite Mixture Model}
 \usage{
 eforensics(formula1, formula2, formula3, formula4, formula5, formula6, data,
-  weights, mcmc, model, parameters = NULL, na.action = "exclude")
+  elegible.voters = NULL, weights, mcmc, model, parameters = NULL,
+  na.action = "exclude", get.dic = 1000)
 }
 \arguments{
 \item{formula1}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})}
@@ -20,7 +21,9 @@ eforensics(formula1, formula2, formula3, formula4, formula5, formula6, data,
 
 \item{formula6}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud stolen (mu.chi.s) and it is latent.}
 
-\item{data}{a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, it must contain also a variable \code{N} which must be an integer with the number of elegible voters}
+\item{data}{a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, the it is necessary to provide the total number of elegible voters (see parameter \code{elegible.voters})}
+
+\item{elegible.voters}{string with the name of the variable in the data that contains the number of elegible voters. Default is \code{NULL}, but it is required if the independent variables (voters for the winner and abstention) are counts}
 
 \item{weights}{(not used)}
 
@@ -31,6 +34,8 @@ eforensics(formula1, formula2, formula3, formula4, formula5, formula6, data,
 \item{parameters}{a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.}
 
 \item{na.action}{(not used)}
+
+\item{get.dic}{logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC}
 }
 \value{
 The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)

@@ -34,9 +34,16 @@ mcmc    = list(burnin=1, n.adapt=100, n.iter=100, n.chains=2)
 ## samples
 ## -------
 help(eforensics)
-samples    = eforensics(w ~.-a, a ~ .-w,  data=data, model=model, mcmc=mcmc)
+samples    = eforensics(w ~.-a, a ~ .-w,  
+                        mu.iota.m ~ x1.iota.m, 
+                        mu.iota.s ~ x1.iota.s,
+                        mu.chi.m  ~ x1.chi.m, 
+                        mu.chi.s  ~ x1.chi.s,
+			data=data, model=model, mcmc=mcmc)
 
 summary(samples)
 summary(samples, join.chains=T)
 
 #+END_SRC
+
+* 
