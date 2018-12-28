@@ -46,7 +46,7 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     ## binomial models
     ## ---------------
     if(model == 'bl')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
-    if(model == 'bl.fc')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    if(model == 'bl_fc')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
 
     ## overdispersion model (beta binomial)
     ## --------------------
@@ -85,7 +85,7 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
-    if (model == 'bl.fc')       return(bl_cov())
+    if (model == 'bl_fc')       return(bl_cov())
 
     if (model == 'bbl')          return(bbl())
   
@@ -272,7 +272,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     attr(samples, "formula.w") = formula1
     attr(samples, "formula.a") = formula2
     attr(samples, "model")     = model.name
-    attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), rep("", 3))
+    attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), "No Fraud", "Incremental Fraud", "Extreme Fraud")
     attr(samples, "dic")       = dic.samples
 
     cat("\n\nEstimation Completed\n\n")

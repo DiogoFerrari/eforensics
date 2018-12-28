@@ -1,4 +1,14 @@
 
+#' @export
+ef_get_true <- function(sim_data)
+{
+    true = sim_data$parameters %>%
+        tibble::data_frame(Parameter=names(.), True=.)  %>%
+        dplyr::mutate(Parameter = paste0(stringr::str_extract(Parameter, 'beta.tau|beta.nu|pi|.*chi.(m|s)|.*iota.(m|s)|n') , '[', stringr::str_extract(Parameter, '[0-9]+') ,']'),
+                      Parameter = stringr::str_replace(string=Parameter, pattern="\\[NA\\]", replacement="")) 
+    return(true)
+}
+
 ## {{{ docs }}}
 
 #' Classify observations into fraud distributions
