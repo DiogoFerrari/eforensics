@@ -12,7 +12,7 @@ simulate_pi <- function()
     return(  LaplacesDemon::rdirichlet(1, c(1,1,1)) )
 }
 
-simulate_bl <- function(n, nCov, model, pi=NULL)
+simulate_bl_no_local_fraud_cov <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -91,7 +91,7 @@ simulate_bl <- function(n, nCov, model, pi=NULL)
     return(sim_data)
 }
 
-simulate_bl_fc <- function(n, nCov, model, pi=NULL)
+simulate_bl <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -517,7 +517,7 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
 ef_simulateData <- function(n=2000,  nCov=0, model, pi=NULL, overdispersion = 10)
 {
     if(model=='bl')         {return(simulate_bl(n,nCov,model,pi))}
-    if(model=='bl_fc')      {return(simulate_bl_fc(n,nCov,model,pi))}
+    ## if(model=='bl_fc')      {return(simulate_bl_fc(n,nCov,model,pi))}
     if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model,pi))}
     if(model=='rn')         {return(simulate_rn(n,nCov,model,pi))}
     if(model=="rn_wcounts") {return(simulate_rn_wcounts(n,nCov,model,pi))}

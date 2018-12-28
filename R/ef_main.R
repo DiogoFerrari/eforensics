@@ -1,5 +1,42 @@
 
 
+## This function is used to order the formulas 3 to 6 based on the depencend variable. User can provide any order. For instance:
+## eforensics(w ~1, a ~, mu.chi.s ~ 1)
+## or
+## eforensics(w ~1, a ~, mu.iota.m ~ 1)
+## mu.chi.s must be formula6, and mu.iota.m must be formula3, but in these two examples, both become formula3 because the user is not specifying formula3=mu.iota.m~1 in the second example nor formula6=mu.chi.s ~ 1 in the second
+## this function use the dependent variables (mu.chi.s, mu.chi.m, mu.iota.s, mu.iota.m) to order the formulas
+## It returns a list of four formulas ordered correctly
+order.formulas <- function(formula3, formula4, formula5, formula6)
+{
+    if (is.null(formula3)) {formula3=NA}
+    if (is.null(formula4)) {formula4=NA}
+    if (is.null(formula5)) {formula5=NA}
+    if (is.null(formula6)) {formula6=NA}
+    formulas = list(formula3, formula4, formula5, formula6)   
+    idx = purrr::map_dbl(.x=formulas, function(.x)  dplyr::case_when(stringr::str_detect(.x, pattern="mu.iota.m") ~ 1,
+                                                                     stringr::str_detect(.x, pattern="mu.iota.s") ~ 2,
+                                                                     stringr::str_detect(.x, pattern="mu.chi.m")  ~ 3,
+                                                                     stringr::str_detect(.x, pattern="mu.chi.s")  ~ 4,
+                                                                     all(is.na(.x %>% as.character)) ~ 999 ## formula NULL
+                                                                     ) %>%
+                                                    .[!is.na(.)]
+                         )
+    formulas.final = list(NA,NA,NA,NA)
+    for (i in 1:length(idx))
+    {
+        if (idx[i]!=999) {
+            formulas.final[[idx[i]]] = formulas[[i]]
+        }
+    }
+    if ( is.na(formulas.final[[1]]) ) {formulas.final[[1]] = mu.iota.m ~ 1}
+    if ( is.na(formulas.final[[2]]) ) {formulas.final[[2]] = mu.iota.s ~ 1}
+    if ( is.na(formulas.final[[3]]) ) {formulas.final[[3]] = mu.chi.m ~ 1}
+    if ( is.na(formulas.final[[4]]) ) {formulas.final[[4]] = mu.chi.s ~ 1}
+
+    return(formulas.final)
+}
+
 
 get_Z <- function(samples)
 {
@@ -45,8 +82,8 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
 
     ## binomial models
     ## ---------------
-    if(model == 'bl')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
-    if(model == 'bl_fc')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    ## if(model == 'bl')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'bl')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
 
     ## overdispersion model (beta binomial)
     ## --------------------
@@ -148,27 +185,87 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' This function estimates a finite mixture model of election fraud
 #'
 #'
-#' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the votes for the winner party or candidate, whose format must be either integers (number of votes) if the model used is the binomial model, or proportions (of votes) if the model used is the restricted normal (see \code{model})
-#' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must the abstention , whose format must be same as the independent variable in \code{formula1}
-#' @param formula3 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud manufactured (mu.iota.m) and it is latent. 
-#' @param formula4 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be incremental fraud stolen (mu.iota.s) and it is latent.
-#' @param formula5 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud manufactured (mu.chi.m) and it is latent.
-#' @param formula6 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable must be extreme fraud stolen (mu.chi.s) and it is latent.
+#' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of votes for the party or candidate that won the election. If counts are used, the model must be from the binomial family (see \code{model} parameter below). If proportions are provided, the model must be from the normal family (see \code{model} parameter below)
+#' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of abstention.  The type (count or proportion) must be the same as the independent variable in \code{formula1}
+#' @param formla3 See description below
+#' @param formla4 See description below
+#' @param formla5 See description below
+#' @param formla6 See description below
+#' \describe{
+#'   \item{Formulas 3 to 6}{There are four other possible formulas to use: formula3, formula4, formula5, formula6}
+#'   \item{formula3}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.iota.m (see example). The mu.iota.m is the probability of incremental fraud by manufacturing votes and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula3. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
+#'   \item{formula4}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.iota.s (see example). The mu.iota.s is the probability of incremental fraud by stealing votes from the opposition and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula4. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
+#'   \item{formula5}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.chi.m (see example). The mu.chi.m is the probability of extreme fraud by manufacturing votes and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula5. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
+#'   \item{formula6}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.chi.s (see example). The mu.chi.s is the probability of extreme fraud by stealing votes from the opposition and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula6. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
+#' }
+#' @param model a string with the name of the model to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.
 #' @param data a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, the it is necessary to provide the total number of elegible voters (see parameter \code{elegible.voters})
 #' @param elegible.voters string with the name of the variable in the data that contains the number of elegible voters. Default is \code{NULL}, but it is required if the independent variables (voters for the winner and abstention) are counts
 #' @param weights (not used)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
-#' @param model a string with either "bl", "rn", "rn_no_alpha". It indicates the forensics model of the data. "rn" stands for restricted normal model. "bl" stands binomial with logistic transformation of the probability parameter. These options indicate which model should be used as the distribution for the voters for the winner and abstention.
-#' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
+#' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL}, it will monitor all the parameters, except the Z's. When \code{parameters='all'} (default), it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
 #' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
+#' @examples
+#'
+#' model    = 'bl'
+#' 
+#' ## simulate data
+#' ## -------------
+#' sim_data = ef_simulateData(n=700, nCov=1, model=model)
+#' data     = sim_data$data
+#' 
+#' ## mcmc parameters
+#' ## ---------------
+#' mcmc    = list(burn.in=1, n.adapt=10, n.iter=100, n.chains=2)
+#' 
+#' ## samples
+#' ## -------
+#' ## help(eforensics)
+#' devtools::document(pkg_folder)
+#' samples    = eforensics(
+#'     w ~ x1.w ,
+#'     a ~ x1.a,
+#'     mu.iota.m ~ x1.iota.m, 
+#'     mu.iota.s ~ x1.iota.s,
+#'     ## mu.chi.m  ~ x1.chi.m, 
+#'     ## mu.chi.s  ~ x1.chi.s,
+#'     data=data,
+#'     elegible.voters="N",
+#'     model=model, mcmc=mcmc, get.dic=0)
+#' 
+#' summary(samples)
+#' summary(samples, join.chains=T)
+#' 
 #' @export
-
 ## }}}
-eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters=NULL, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000)
+eforensics   <- function(formula1, formula2, formula3=NULL, formula4=NULL, formula5=NULL, formula6=NULL, data, elegible.voters=NULL, weights=NULL, mcmc, model, parameters="all", na.action="exclude", get.dic = 1000)
+{
+    ## error handling
+    check_mcmc(mcmc)
+    options(warn=-1)
+    on.exit(options(warn=0))
+    ## check if JAGS is installed
+    ef_check_jags()
+
+    ## order the formulas (see comment in the order.formulas() function)
+    formulas = order.formulas(formula3, formula4, formula5, formula6)
+    formula3 = formulas[[1]] %>% as.formula
+    formula4 = formulas[[2]] %>% as.formula
+    formula5 = formulas[[3]] %>% as.formula
+    formula6 = formulas[[4]] %>% as.formula
+
+    ## create a placeholder for weights it if is not provided
+    if (is.null(weights)) {data = data %>% dplyr::mutate(weights__tmp__ = 1)}
+
+    eforensics_main(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters, weights=weights__tmp__, mcmc, model, parameters, na.action, get.dic) 
+    
+}
+
+eforensics_main   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters=NULL, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000)
 {
     ## error handling
     check_mcmc(mcmc)
@@ -216,10 +313,10 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     dat    = list(w = w, a = a,
                   Xa       = as.matrix(Xa)      , dxa       = ncol(Xa), 
                   Xw       = as.matrix(Xw)      , dxw       = ncol(Xw), 
-                  X.iota.s = as.matrix(X.iota.s), dx.iota.s = ncol(X.iota.s),
                   X.iota.m = as.matrix(X.iota.m), dx.iota.m = ncol(X.iota.m),
-                  X.chi.s  = as.matrix(X.chi.s),  dx.chi.s  = ncol(X.chi.s),
+                  X.iota.s = as.matrix(X.iota.s), dx.iota.s = ncol(X.iota.s),
                   X.chi.m  = as.matrix(X.chi.m),  dx.chi.m  = ncol(X.chi.m),
+                  X.chi.s  = as.matrix(X.chi.s),  dx.chi.s  = ncol(X.chi.s),
                   n = length(w))
     if(!is.null(elegible.voters)){
         data = data %>% dplyr::rename(elegible.voters = !!elegible.voters) 
@@ -252,7 +349,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     ## MCMC
     ## ----
     time.init    = Sys.time()
-    cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains)
+    cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains);
     cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim, n.iter = mcmc$burn.in)
     cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
     T.mcmc = Sys.time() - time.init
@@ -278,6 +375,7 @@ eforensics   <- function(formula1, formula2, formula3, formula4, formula5, formu
     cat("\n\nEstimation Completed\n\n")
     return(samples)
 }
+
 
 ## eforensics_par   <- function(formula1, formula2, data, weights, mcmc, model, parameters=NULL, na.action="exclude")
 ## {

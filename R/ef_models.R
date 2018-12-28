@@ -5,7 +5,7 @@
 ## =====================================================
 ## Binomial model (basic)
 ## --------------
-bl <- function()
+bl_no_local_fraud_cov <- function()
 {
 "model{
 	## Constants
@@ -177,7 +177,7 @@ bl.vd <- function()
 
 ## Binomial model with covariates for local fraud probabilities
 ## ------------------------------------------------------------
-bl_cov <- function()
+bl <- function()
 {
 "model{
 	## ---------
