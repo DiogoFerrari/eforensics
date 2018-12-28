@@ -462,7 +462,7 @@ ef_plot <- function(samples, true=NULL, parse=FALSE, plots=c("Abstention and Vot
         ggplot2::facet_wrap( ~ Group, ncol = 1, scales='free' )  
     if (!is.null(true)) {
         g = g +
-            ggplot2::geom_point(ggplot2::aes(x=True, y=label, shape="True", colour="True"), size=2, alpha=1)    +
+            ggplot2::geom_point(ggplot2::aes(x=True, y=label, shape="True", colour="True"), size=2, alpha=.6)    +
             ggplot2::scale_colour_manual(values = c("Posterior Mean" = "black", "True"='red'), name="")  
     }else{
         

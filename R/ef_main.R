@@ -177,7 +177,6 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
     return(list(y=y, X=x, w=w))
 }
 
-
 ## {{{ docs }}}
 
 #' Election Forensics Finite Mixture Model
@@ -198,7 +197,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #'   \item{formula5}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.chi.m (see example). The mu.chi.m is the probability of extreme fraud by manufacturing votes and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula5. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
 #'   \item{formula6}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.chi.s (see example). The mu.chi.s is the probability of extreme fraud by stealing votes from the opposition and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula6. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
 #' }
-#' @param model a string with the name of the model to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.
+#' @param model a string with the model ID to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.
 #' @param data a dara.frame with the independent variables (voters for the winner and abstention) and the covariates. If the independent variables are counts, the it is necessary to provide the total number of elegible voters (see parameter \code{elegible.voters})
 #' @param elegible.voters string with the name of the variable in the data that contains the number of elegible voters. Default is \code{NULL}, but it is required if the independent variables (voters for the winner and abstention) are counts
 #' @param weights (not used)

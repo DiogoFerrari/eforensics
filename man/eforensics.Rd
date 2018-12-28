@@ -6,7 +6,7 @@
 \usage{
 eforensics(formula1, formula2, formula3 = NULL, formula4 = NULL,
   formula5 = NULL, formula6 = NULL, data, elegible.voters = NULL,
-  weights = NULL, mcmc, model, parameters = NULL, na.action = "exclude",
+  weights = NULL, mcmc, model, parameters = "all", na.action = "exclude",
   get.dic = 1000)
 }
 \arguments{
@@ -22,9 +22,9 @@ eforensics(formula1, formula2, formula3 = NULL, formula4 = NULL,
 
 \item{mcmc}{a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})}
 
-\item{model}{a string with the name of the model to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.}
+\item{model}{a string with the model ID to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.}
 
-\item{parameters}{a string vector with the names of the parameters to monitor. When \code{NULL} (default), it will monitor all the parameters, except the Z's. When \code{parameters='all'}, it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.}
+\item{parameters}{a string vector with the names of the parameters to monitor. When \code{NULL}, it will monitor all the parameters, except the Z's. When \code{parameters='all'} (default), it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.}
 
 \item{na.action}{(not used)}
 

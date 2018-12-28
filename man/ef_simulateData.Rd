@@ -4,7 +4,7 @@
 \alias{ef_simulateData}
 \title{Simulate Election data}
 \usage{
-ef_simulateData(n = 2000, nCov = 0, model, pi = NULL,
+ef_simulateData(n = 2000, nCov = 0, nCov.fraud = 0, model, pi = NULL,
   overdispersion = 10)
 }
 \arguments{
@@ -12,7 +12,7 @@ ef_simulateData(n = 2000, nCov = 0, model, pi = NULL,
 
 \item{nCov}{number of covariates affecting both turnout and votes for the winner in each election unit}
 
-\item{model}{a string with the name of the model to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.}
+\item{model}{a string with the model ID to use in the estimation. Run \code{\link{ef_models()}} to see the list and descriptions of the models available.}
 
 \item{pi}{vector with three numbers between 0 and 1 whose sum must add up to 1. If \code{NULL} (default) this vector will be randomly generated}
 
