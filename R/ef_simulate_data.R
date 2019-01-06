@@ -12,7 +12,7 @@ simulate_pi <- function()
     return(  LaplacesDemon::rdirichlet(1, c(1,1,1)) )
 }
 
-simulate_bl <- function(n, nCov, model, pi=NULL)
+simulate_bl_no_local_fraud_cov <- function(n, nCov, model, pi=NULL)
 {
     ## parameters
     ## ----------
@@ -91,13 +91,14 @@ simulate_bl <- function(n, nCov, model, pi=NULL)
     return(sim_data)
 }
 
-simulate_bl_fc <- function(n, nCov, model, pi=NULL)
+simulate_bl <- function(n, nCov, nCov.fraud=0, model, pi=NULL)
 {
     ## parameters
     ## ----------
-    k1         = .5
-    k2         = .8
+    k1        = .5
+    k2        = .8
     d         = nCov
+    d.fraud   = nCov.fraud
 
     if (is.null(pi)) {
         pi = simulate_pi()
@@ -110,38 +111,43 @@ simulate_bl_fc <- function(n, nCov, model, pi=NULL)
     mu.chi.s    = stats::runif(1,k2,1)
     beta.tau    = stats::runif(n=nCov+1, -.25,.25)
     beta.nu     = stats::runif(n=nCov+1, -.25,.25)
-    beta.iota.s = stats::runif(n=nCov+1, -.25,.25)
-    beta.iota.m = stats::runif(n=nCov+1, -.25,.25)
-    beta.chi.s  = stats::runif(n=nCov+1, -.25,.25)
-    beta.chi.m  = stats::runif(n=nCov+1, -.25,.25)
+    beta.iota.s = stats::runif(n=d.fraud+1, -.25,.25)
+    beta.iota.m = stats::runif(n=d.fraud+1, -.25,.25)
+    beta.chi.s  = stats::runif(n=d.fraud+1, -.25,.25)
+    beta.chi.m  = stats::runif(n=d.fraud+1, -.25,.25)
 
     if (d>0) {
         x.a             = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
         x.w             = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
-        x.iota.m        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
-        x.iota.s        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
-        x.chi.m         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
-        x.chi.s         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d), Sigma=diag(1,d)))
         names(x.a)      = paste0('x',1:d, ".a", sep='')
         names(x.w)      = paste0('x',1:d, ".w", sep='')
-        names(x.iota.m) = paste0('x',1:d, ".iota.m", sep='')
-        names(x.iota.s) = paste0('x',1:d, ".iota.s",  sep='')
-        names(x.chi.m)  = paste0('x',1:d, ".chi.m", sep='')
-        names(x.chi.s)  = paste0('x',1:d, ".chi.s",  sep='')
         mu.tau          = as.matrix(cbind(1,x.a)) %*% beta.tau
         mu.nu           = as.matrix(cbind(1,x.w)) %*% beta.nu
+    }else{
+        mu.tau    = rep(stats::runif(1,.3,.7),n)
+        mu.nu     = rep(stats::runif(1,.3,.7),n)
+    }
+    if (d.fraud>0) {
+        x.iota.m        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d.fraud), Sigma=diag(1,d.fraud)))
+        x.iota.s        = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d.fraud), Sigma=diag(1,d.fraud)))
+        x.chi.m         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d.fraud), Sigma=diag(1,d.fraud)))
+        x.chi.s         = as.data.frame(MASS::mvrnorm(n, mu=rep(0,d.fraud), Sigma=diag(1,d.fraud)))
+        names(x.iota.m) = paste0('x',1:d.fraud, ".iota.m", sep='')
+        names(x.iota.s) = paste0('x',1:d.fraud, ".iota.s",  sep='')
+        names(x.chi.m)  = paste0('x',1:d.fraud, ".chi.m", sep='')
+        names(x.chi.s)  = paste0('x',1:d.fraud, ".chi.s",  sep='')
         mu.iota.m       = as.matrix(cbind(1,x.iota.m)) %*% beta.iota.m
         mu.iota.s       = as.matrix(cbind(1,x.iota.s)) %*% beta.iota.s
         mu.chi.m        = as.matrix(cbind(1,x.chi.m)) %*% beta.chi.m
         mu.chi.s        = as.matrix(cbind(1,x.chi.s)) %*% beta.chi.s
     }else{
-        mu.tau    = rep(stats::runif(1,.3,.7),n)
-        mu.nu     = rep(stats::runif(1,.3,.7),n)
         mu.iota.m = rep(stats::runif(1,.3,.7),n)
         mu.iota.s = rep(stats::runif(1,.3,.7),n)
         mu.chi.m  = rep(stats::runif(1,.3,.7),n)
         mu.chi.s  = rep(stats::runif(1,.3,.7),n)
     }
+
+
     p.tau    = 1/(1+exp(-mu.tau))
     p.nu     = 1/(1+exp(-mu.nu))
     p.iota.m = k1 * 1/(1+exp(-mu.iota.m))
@@ -185,7 +191,11 @@ simulate_bl_fc <- function(n, nCov, model, pi=NULL)
     ## rounding w and a
     w = round(w,0)
     a = round(a,0)
-    x = cbind(x.w, x.a, x.iota.m, x.iota.s, x.chi.m, x.chi.s)
+    if (d.fraud>0) {
+        x = cbind(x.w, x.a, x.iota.m, x.iota.s, x.chi.m, x.chi.s)
+    }else{
+        x = cbind(x.w, x.a)
+    }
     ## a = a + (N-w-a)
     if (d>0) {
         data = data.frame(cbind(w = w, a = a, N = N, x))
@@ -514,10 +524,10 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
 #'
 #' @export
 ## }}}
-ef_simulateData <- function(n=2000,  nCov=0, model, pi=NULL, overdispersion = 10)
+ef_simulateData <- function(n=2000,  nCov=0, nCov.fraud=0, model, pi=NULL, overdispersion = 10)
 {
-    if(model=='bl')         {return(simulate_bl(n,nCov,model,pi))}
-    if(model=='bl_fc')      {return(simulate_bl_fc(n,nCov,model,pi))}
+    if(model=='bl')         {return(simulate_bl(n,nCov,nCov.fraud,model,pi))}
+    ## if(model=='bl_fc')      {return(simulate_bl_fc(n,nCov,model,pi))}
     if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model,pi))}
     if(model=='rn')         {return(simulate_rn(n,nCov,model,pi))}
     if(model=="rn_wcounts") {return(simulate_rn_wcounts(n,nCov,model,pi))}

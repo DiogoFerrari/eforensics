@@ -1,11 +1,38 @@
 
+transpose_df <- function(df) {
+  t_df <- data.table::transpose(df)
+  colnames(t_df) <- rownames(df)
+  rownames(t_df) <- colnames(df)
+  t_df <- t_df %>%
+    tibble::rownames_to_column(df = .) %>%
+    tibble::as_data_frame(x = .)
+  return(t_df)
+}
+## {{{ docs }}}
+#' Descript the models available in the eforensics package
+#' @export
+## }}}
+ef_models <- function()
+{
+    model1 = c("bl", "Binomial-logistic model", "Votes for the winner and abstention must be provided in counts. Number of elegible voters must also be provided") 
+    model2 = c("rn", "Restricted Normal model", "Votes for the winner and abstention must be provided as proportions") 
+    tab = tibble::data_frame(
+                model1=model1,
+                model2=model2
+            )   %>%
+        transpose_df(.) %>%
+        dplyr::rename(`Model ID` = `1`, `Model Name` = `2`, Description=`3`)  %>%
+            dplyr::select(-rowname) 
+    print(tab)
+    invisible()
+}
 
 ## =====================================================
 ## Binomial models
 ## =====================================================
 ## Binomial model (basic)
 ## --------------
-bl <- function()
+bl.rd <- function()
 {
 "model{
 	## Constants
@@ -177,7 +204,7 @@ bl.vd <- function()
 
 ## Binomial model with covariates for local fraud probabilities
 ## ------------------------------------------------------------
-bl_cov <- function()
+bl <- function()
 {
 "model{
 	## ---------
