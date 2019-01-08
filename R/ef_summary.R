@@ -481,6 +481,13 @@ ef_plot <- function(samples, true=NULL, parse=FALSE, plots=c("Abstention and Vot
         g = g +
             ggplot2::ggtitle(label=title, subtitle=subtitle) 
     }
+    ## theme
+    g = g +
+        ggplot2::theme_bw() +
+        ggplot2::theme(legend.position = "top") + 
+        ggplot2::theme(strip.background = ggplot2::element_rect(colour="white", fill="white"),
+                       strip.text.x = ggplot2::element_text(size=11, face='bold', hjust=0),
+                       strip.text.y = ggplot2::element_text(size=11, face="bold", vjust=0)) 
     return(g)
 }
 
