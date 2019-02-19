@@ -212,10 +212,10 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #'
 #' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of votes for the party or candidate that won the election. If counts are used, the model must be from the binomial family (see \code{model} parameter below). If proportions are provided, the model must be from the normal family (see \code{model} parameter below)
 #' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of abstention.  The type (count or proportion) must be the same as the independent variable in \code{formula1}
-#' @param formla3 See description below
-#' @param formla4 See description below
-#' @param formla5 See description below
-#' @param formla6 See description below
+#' @param formula3 See description below
+#' @param formula4 See description below
+#' @param formula5 See description below
+#' @param formula6 See description below
 #' \describe{
 #'   \item{Formulas 3 to 6}{There are four other possible formulas to use: formula3, formula4, formula5, formula6}
 #'   \item{formula3}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.iota.m (see example). The mu.iota.m is the probability of incremental fraud by manufacturing votes and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula3. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
@@ -230,7 +230,10 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
 #' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL}, it will monitor all the parameters, except the Z's. When \code{parameters='all'} (default), it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
-#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC
+#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC.  If \code{parComp = TRUE}, then no DIC is calculated.
+#' @param parComp Logical.  If parComp = TRUE, then chains are computed in parallel using the runjags architecture.  This opens n.chains instances of JAGS.  In practice, a max of 4 unique chains can be run due to the way in which JAGS generates initial values.
+#' @param autoConv Logical.  If parComp = TRUE and autoConv = TRUE, the chains are run until convergence criteria are met.  Currently, chains are run for a single period equal to \code{burn.in} iterations and monitored for \code{n.iter} iterations.  If PSRF on the three values of pi are lower than 1.05, then the chain is stopped and the chain is run for \code{n.iter} more iterations monitoring all values specified by \code{parameters}.  If the PSRF for any value is higher than 1.05, then the chain is run for \code{burn.in} + \code{n.iter} more iterations and the PSRF is again checked.  This is repeated, at most, \code{max.auto} times.  If PSRF is not met by \code{max.auto} attempts, a warning message is printed and the chains are run \code{n.iter} more times with all parameters monitored.
+#' @param max.auto Integer.  Number of subsequent tries to achieve a PSRF of 1.05 on pi.  After \code{max.auto} failures, a warning is thrown and the chain is run \code{n.iter} more times monitoring all specified parameters.
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
