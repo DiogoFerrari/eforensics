@@ -5,8 +5,9 @@
 \title{Plot samples from eforensics}
 \usage{
 plot_local_fraud(data, samples = NULL, model = NULL, row = NULL,
-  election.unit = NULL, title = NULL, subtitle = TRUE, plot.mean = TRUE,
-  legend.position = "bottom", sim_data = NULL, by.types = TRUE)
+  election.unit = NULL, title = NULL, subtitle = TRUE,
+  plot.mean = TRUE, legend.position = "bottom", sim_data = NULL,
+  by.types = TRUE)
 }
 \arguments{
 \item{data}{either the data set used to estimate fraud or the output of the function \link{ef_get_local_fraud}}

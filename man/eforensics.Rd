@@ -6,8 +6,8 @@
 \usage{
 eforensics(formula1, formula2, formula3 = NULL, formula4 = NULL,
   formula5 = NULL, formula6 = NULL, data, elegible.voters = NULL,
-  weights = NULL, mcmc, model, parameters = "all", na.action = "exclude",
-  get.dic = 1000)
+  weights = NULL, mcmc, model, parameters = "all",
+  na.action = "exclude", get.dic = 1000)
 }
 \arguments{
 \item{formula1}{an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of votes for the party or candidate that won the election. If counts are used, the model must be from the binomial family (see \code{model} parameter below). If proportions are provided, the model must be from the normal family (see \code{model} parameter below)}
