@@ -86,11 +86,13 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     ## ---------------
     ## if(model == 'bl')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
     if(model == 'bl')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    if(model == 'bl.rd')               parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
 
     ## overdispersion model (beta binomial)
     ## --------------------
     #if(model == 'bbl')                parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s","nf.var")
-    if(model == 'bbl')                 parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s", "iota.m.beta","iota.s.beta","chi.m.beta","chi.s.beta","mu.tau.beta","mu.nu.beta")
+    if(model == 'bbl.rd')                 parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+    if(model == 'bl')               parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
 
     ## varying dimension models
     ## ------------------------
@@ -111,6 +113,28 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
     return(parameters)
 }
 
+ef_get_parameters_to_monitor_c <- function(model)
+{
+  if(model == 'rn'){
+    parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+  }else{
+    if(model == 'bl'){
+      parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    }else{
+      if(model == "bbl"){
+        parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+      }else{
+        if(model == "bl.rd"){
+          parameters = c("pi", 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "mu.iota.s", "mu.chi.s")
+        }else{
+          parameters = c("pi")
+        }
+      }
+    }
+  }
+  return(parameters)
+}
+
 get_model <- function(model)
 {
     if (model == 'rn')           return(rn())
@@ -124,9 +148,11 @@ get_model <- function(model)
     if (model == 'rn_no_alpha_sep')  return(rn_no_alpha_sep())
 
     if (model == 'bl')          return(bl())
+    if (model == 'bl.rd')          return(bl.rd())
     if (model == 'bl_fc')       return(bl_cov())
 
     if (model == 'bbl')          return(bbl())
+    if (model == 'bbl.rd')          return(bbl.rd())
   
     if (model == 'bl.vd')       return(bl.vd())
     
@@ -188,10 +214,10 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #'
 #' @param formula1 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of votes for the party or candidate that won the election. If counts are used, the model must be from the binomial family (see \code{model} parameter below). If proportions are provided, the model must be from the normal family (see \code{model} parameter below)
 #' @param formula2 an object of the class \code{formula} as used in \code{\link{lm}}. The dependent variable of this formula must the number (counts) or proportion of abstention.  The type (count or proportion) must be the same as the independent variable in \code{formula1}
-#' @param formla3 See description below
-#' @param formla4 See description below
-#' @param formla5 See description below
-#' @param formla6 See description below
+#' @param formula3 See description below
+#' @param formula4 See description below
+#' @param formula5 See description below
+#' @param formula6 See description below
 #' \describe{
 #'   \item{Formulas 3 to 6}{There are four other possible formulas to use: formula3, formula4, formula5, formula6}
 #'   \item{formula3}{an object of the class \code{formula} as used in \code{\link{lm}}. The left-hand side (LHS) of the formula must be mu.iota.m (see example). The mu.iota.m is the probability of incremental fraud by manufacturing votes and it is a latent variable in the model. By specifying the LHS with that variable, the functional automatically identifies that formula as formula3. Default is \code{NULL} and it means that probability is not affected by election unit (ballot box, polling place, etc) covariate}
@@ -206,7 +232,10 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' @param mcmc a list containing \code{n.iter}, which is the number of iterations for the MCMC, \code{burn.in} for the burn-in period of the MCMC chain, \code{n.adapt} indicating the number of adaptative steps before the estimation (see \code{\link{rjags}})
 #' @param parameters a string vector with the names of the parameters to monitor. When \code{NULL}, it will monitor all the parameters, except the Z's. When \code{parameters='all'} (default), it will monitor all parameters, including Z, which is necessary to classify the observations as fraudulent cases or not.
 #' @param na.action (not used)
-#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC
+#' @param get.dic logical.  If get.dic is FALSE, no DIC is calculated.  If get.dic is an integer greater than 0, run model get.dic iterations to get the DIC.  If \code{parComp = TRUE}, then no DIC is calculated.
+#' @param parComp Logical.  If parComp = TRUE, then chains are computed in parallel using the runjags architecture.  This opens n.chains instances of JAGS.  In practice, a max of 4 unique chains can be run due to the way in which JAGS generates initial values.
+#' @param autoConv Logical.  If parComp = TRUE and autoConv = TRUE, the chains are run until convergence criteria are met.  Currently, chains are run for a single period equal to \code{burn.in} iterations and monitored for \code{n.iter} iterations.  If PSRF on the three values of pi are lower than 1.05, then the chain is stopped and the chain is run for \code{n.iter} more iterations monitoring all values specified by \code{parameters}.  If the PSRF for any value is higher than 1.05, then the chain is run for \code{burn.in} + \code{n.iter} more iterations and the PSRF is again checked.  This is repeated, at most, \code{max.auto} times.  If PSRF is not met by \code{max.auto} attempts, a warning message is printed and the chains are run \code{n.iter} more times with all parameters monitored.
+#' @param max.auto Integer.  Number of subsequent tries to achieve a PSRF of 1.05 on pi.  After \code{max.auto} failures, a warning is thrown and the chain is run \code{n.iter} more times monitoring all specified parameters.
 #'
 #' @return The function returns a nested list. The first element of the list is a \code{mcmc} object with the samples from the posterior distribution. The second element of the list is a list of summaries (HPD, Mean, etc)
 #'
@@ -243,7 +272,7 @@ getRegMatrix <- function(func.call, data, weights, formula_number=1)
 #' 
 #' @export
 ## }}}
-eforensics   <- function(formula1, formula2, formula3=NULL, formula4=NULL, formula5=NULL, formula6=NULL, data, elegible.voters=NULL, weights=NULL, mcmc, model, parameters="all", na.action="exclude", get.dic = 1000)
+eforensics   <- function(formula1, formula2, formula3=NULL, formula4=NULL, formula5=NULL, formula6=NULL, data, elegible.voters=NULL, weights=NULL, mcmc, model, parameters="all", na.action="exclude", get.dic = 1000, parComp = T, autoConv = T, max.auto = 10)
 {
     ## error handling
     check_mcmc(mcmc)
@@ -260,9 +289,13 @@ eforensics   <- function(formula1, formula2, formula3=NULL, formula4=NULL, formu
     formula6 = formulas[[4]] %>% as.formula
 
     ## create a placeholder for weights it if is not provided
-    if (is.null(weights)) {data = data %>% dplyr::mutate(weights__tmp__ = 1)}
-
-    eforensics_main(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters, weights=weights__tmp__, mcmc, model, parameters, na.action, get.dic) 
+    if (is.null(weights)) {data = data %>% dplyr::mutate(weights = 1)}
+    
+    if(parComp == T){
+      eforensics_main_par(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters, weights, mcmc, model, parameters, na.action, get.dic, autoConv, max.auto)
+    }else{
+      eforensics_main(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters, weights, mcmc, model, parameters, na.action, get.dic)
+    }
     
 }
 
@@ -380,6 +413,156 @@ eforensics_main   <- function(formula1, formula2, formula3, formula4, formula5, 
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)
+}
+
+eforensics_main_par   <- function(formula1, formula2, formula3, formula4, formula5, formula6, data, elegible.voters=NULL, weights, mcmc, model, parameters=NULL, na.action="exclude", get.dic = 1000, autoConv = T, max.auto = 10)
+{
+  ## error handling
+  check_mcmc(mcmc)
+  options(warn=-1)
+  on.exit(options(warn=0))
+  ## check if JAGS is installed
+  ef_check_jags()
+  
+  ## constructing formulas 3 to 6 placeholder in the data for the latent variables mu.iota.s, mu.iota.m, mu.chi.s, mu.chi.m. This is needed to construct the design matrix
+  data$mu.iota.m = 1
+  data$mu.iota.s = 1
+  data$mu.chi.m = 1
+  data$mu.chi.s = 1
+  
+  ## ## construct the regression matrices (data.frames) based on the formula provided
+  ## ## -----------------------------------------------------------------------------
+  func.call <- match.call(expand.dots = FALSE)
+  ## votes for the winner
+  mat     = getRegMatrix(func.call, data, weights, formula_number=1)
+  w       = mat$y
+  Xw      = mat$X
+  weightw = mat$w
+  ## abstention
+  mat     = getRegMatrix(func.call, data, weights, formula_number=2)
+  a       = mat$y
+  Xa      = mat$X
+  weighta = mat$w
+  
+  ## incremental fraud manufactures (mu.iota.m)
+  mat      = getRegMatrix(func.call, data, weights, formula_number=3)
+  X.iota.m = mat$X
+  weighta  = mat$w
+  ## incremental fraud stolen (mu.iota.s)
+  mat      = getRegMatrix(func.call, data, weights, formula_number=4)
+  X.iota.s = mat$X
+  weighta  = mat$w
+  ## incremental fraud manufactures (mu.chi.m)
+  mat      = getRegMatrix(func.call, data, weights, formula_number=5)
+  X.chi.m = mat$X
+  weighta  = mat$w
+  ## incremental fraud stolen (mu.chi.s)
+  mat      = getRegMatrix(func.call, data, weights, formula_number=6)
+  X.chi.s = mat$X
+  weighta  = mat$w
+  dat    = list(w = w, a = a,
+                Xa       = as.matrix(Xa)      , dxa       = ncol(Xa), 
+                Xw       = as.matrix(Xw)      , dxw       = ncol(Xw), 
+                X.iota.m = as.matrix(X.iota.m), dx.iota.m = ncol(X.iota.m),
+                X.iota.s = as.matrix(X.iota.s), dx.iota.s = ncol(X.iota.s),
+                X.chi.m  = as.matrix(X.chi.m),  dx.chi.m  = ncol(X.chi.m),
+                X.chi.s  = as.matrix(X.chi.s),  dx.chi.s  = ncol(X.chi.s),
+                n = length(w))
+  if(!is.null(elegible.voters)){
+    data = data %>% dplyr::rename(elegible.voters = !!elegible.voters) 
+    dat$N = data$elegible.voters
+  }else{
+    ## check if model use counts, and require elebigle voters
+    ## ------------------------------------------------------
+    if (stringr::str_detect(model, pattern="bl")) {
+      stop("\nThe parameter 'elegible.voters' must be provided for models based on binomial distributions\n\n")
+    }
+  }
+  data = dat
+  ## get parameters to monitor
+  ## -------------------------
+  if(is.null(parameters)) parameters = ef_get_parameters_to_monitor(model)
+  if(parameters[1] == 'all') parameters = ef_get_parameters_to_monitor(model, all=TRUE)
+  
+  parameters_c = ef_get_parameters_to_monitor_c(model)
+  
+  ## get model
+  ## ---------
+  model.name = model
+  model      = get_model(model.name)
+  
+  ## Debug/Monitoring message --------------------------
+  msg <- paste0('\n','Burn-in: ', mcmc$burn.in, '\n'); cat(msg)
+  ## msg <- paste0('\n','Chains: ', mcmc$n.chains, '\n'); cat(msg)
+  msg <- paste0('\n','Number of MCMC samples per chain: ', mcmc$n.iter, '\n'); cat(msg)
+  msg <- paste0('\n','MCMC in progress ....', '\n'); cat(msg)
+  ## ---------------------------------------------------
+  
+  ## MCMC
+  ## ----
+  time.init    = Sys.time()
+  #Run for a prespecified amount of time
+  if(autoConv == T){
+    presim = runjags::run.jags(model = model, monitor = c("pi"), data = data, n.chains = mcmc$n.chains, burnin = mcmc$burn.in, sample = mcmc$n.iter, adapt = mcmc$n.adapt, jags.refresh = .5, method = "parallel")
+    mc.perc.se <- summary(presim)[,11] < 1.05
+    gr.mat <- cbind(summary(presim)[,11],summary(presim)[,4])
+    colnames(gr.mat) <- c("PSRF","Mean")
+    print(gr.mat)
+    cc <- 0
+    if(prod(mc.perc.se) == 0){
+      zz <- 0
+    }else{
+      zz <- 1
+    }
+    while(zz == 0){
+      cc <- 1 + cc
+      print(paste("MCMC Standard Error Threshold Not Met, Trying More Iterations: Attempt ",cc,sep = ""))
+      gr.mat <- cbind(summary(presim)[,11],summary(presim)[,4])
+      colnames(gr.mat) <- c("PSRF","Mean")
+      print(gr.mat)
+      presim = runjags::extend.jags(presim, burnin = mcmc$burn.in, sample = mcmc$n.iter, adapt = mcmc$n.adapt, jags.refresh = 10, method = "parallel")
+      mc.perc.se <- summary(presim)[,11] < 1.05
+      if(prod(mc.perc.se) == 0 & cc < max.auto){
+        zz <- 0
+      }else{
+        zz <- 1
+      }
+    }
+    if(cc == max.auto){
+      print(paste("After ", max.auto," tries to extend MCMC, convergence in terms of MCSE was not met.  Use these results with caution and think about re-running eforensics with more chains, samples, or a longer burnin."), sep = "")
+    }
+    print("Burnin Finished; Capturing from Stationary Distributions")
+    samples = runjags::extend.jags(presim,add.monitor = c(parameters), burnin = 0, sample = mcmc$n.iter, adapt = mcmc$n.adapt, thin = 1, method = "parallel", jags.refresh = 10)
+  }else{
+    samples = runjags::run.jags(model = model, monitor = parameters, data = data, n.chains = mcmc$n.chains, burnin = mcmc$burn.in, sample = mcmc$n.iter, adapt = mcmc$n.adapt, jags.refresh = .5, method = "parallel")
+  }
+  #cat('\nCompiling the model...\n')     ; sim = rjags::jags.model(file=textConnection(model), data = data, n.adapt=mcmc$n.adapt, n.chain=mcmc$n.chains);
+  #cat('\nUpdating MCMC (burn-in) ...\n'); stats::update(sim, n.iter = mcmc$burn.in)
+  #cat('\nDrawing the samples...\n')     ; samples = rjags::coda.samples(model=sim, variable.names=parameters, n.iter=mcmc$n.iter)
+  #T.mcmc = Sys.time() - time.init
+  #if(get.dic != 0){
+  #  cat('\nDrawing DIC samples...\n') ; dic.samples = rjags::dic.samples(model=sim, n.iter=get.dic, type = "popt")
+  #}else{
+  #  dic.samples = NULL
+  #}
+  dic.samples = NULL
+  T.mcmc = Sys.time() - time.init
+  
+  if(!is.null(parameters) & "Z" %in% parameters){
+    samples = get_Z(samples[[1]])
+  }else{
+    samples = create_list(samples[[1]])
+  }
+  class(samples) = "eforensics"
+  
+  attr(samples, "formula.w") = formula1
+  attr(samples, "formula.a") = formula2
+  attr(samples, "model")     = model.name
+  attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), "No Fraud", "Incremental Fraud", "Extreme Fraud")
+  attr(samples, "dic")       = "No DIC can be calculated using parallel chains"
+  
+  cat("\n\nEstimation Completed\n\n")
+  return(samples)
 }
 
 
