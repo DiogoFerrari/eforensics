@@ -69,9 +69,11 @@ ef_get_parameters_to_monitor <- function(model, all=FALSE)
 {
     ## Restricted normal models
     ## ------------------------
-    if(model == 'rn')                  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    ## if(model == 'rn')                  parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
+    if(model == 'rn')                  parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s", "alpha")
+    if(model == 'rn_no_alpha')         parameters = c("pi", 'beta.tau', 'beta.nu', "beta.iota.m", "beta.iota.s", "beta.chi.m", "beta.chi.s")
+    ## if(model == 'rn_no_alpha')         parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
     if(model == 'normal')              parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
-    if(model == 'rn_no_alpha')         parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "mu.iota.s", "mu.chi.s", "sigma.iota.s")
 
     if(model == 'rn_sep')              parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
     if(model == 'normal_sep')          parameters = c('pi', 'beta.tau', 'beta.nu', "mu.iota.m",  "mu.chi.m", "sigma.iota.m", "sigma.tau", "sigma.nu", "alpha")
@@ -368,8 +370,13 @@ eforensics_main   <- function(formula1, formula2, formula3, formula4, formula5, 
     attr(samples, "formula.w") = formula1
     attr(samples, "formula.a") = formula2
     attr(samples, "model")     = model.name
-    attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), "No Fraud", "Incremental Fraud", "Extreme Fraud")
+    if (model.name %in% c("rn")) {
+        attr(samples, "terms")     = c("alpha", colnames(X.chi.m), colnames(X.iota.m), colnames(Xw), colnames(Xa), "No Fraud", "Incremental Fraud", "Extreme Fraud")
+    }else{
+        attr(samples, "terms")     = c(colnames(X.chi.m), colnames(X.chi.s), colnames(X.iota.m), colnames(X.iota.s), colnames(Xw), colnames(Xa), "No Fraud", "Incremental Fraud", "Extreme Fraud")
+    }
     attr(samples, "dic")       = dic.samples
+    ## include alpha in terms name if using rn model
 
     cat("\n\nEstimation Completed\n\n")
     return(samples)
