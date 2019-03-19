@@ -819,7 +819,6 @@ bbl.rd <- function()
 }
 
 ##BBL model with local fraud covariates
-
 bbl <- function()
 {
   "model{
@@ -884,7 +883,7 @@ bbl <- function()
   ## -----------
   pi	         ~ ddirch( psi )                                  ## mixing probabilities
   beta.tau	 ~ dmnorm.vcov(mu.beta.tau, sigma.beta.tau)       ## linear coefficients of expectation of turnout
-  beta.nu	         ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)         ## linear coefficients of expectation of votes for the winner
+  beta.nu	 ~ dmnorm.vcov(mu.beta.nu, sigma.beta.nu)         ## linear coefficients of expectation of votes for the winner
   beta.iota.m	 ~ dmnorm.vcov(mu.beta.iota.m, sigma.beta.iota.m) ## linear coefficients of expectation of incremental fraud, manufactored votes
   beta.iota.s	 ~ dmnorm.vcov(mu.beta.iota.s, sigma.beta.iota.s) ## linear coefficients of expectation of incremental fraud, stolen votes
   beta.chi.m	 ~ dmnorm.vcov(mu.beta.chi.m, sigma.beta.chi.m)   ## linear coefficients of expectation of extreme fraud    , manufactored votes
