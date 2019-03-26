@@ -441,7 +441,11 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
     k2         = .8
     d         = nCov
     
-                                        #pi        = c(.6,.4,0)
+    if (is.null(pi)) {
+        pi = simulate_pi()
+    }else{
+        check.pi.values(pi)
+    }
     mu.iota.m = stats::runif(1,0,k1)
     mu.iota.s = stats::runif(1,0,k1)
     mu.chi.m  = stats::runif(1,k2,1)
@@ -464,11 +468,41 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
     true.theta = unlist(list(n=n, pi=pi,
                              beta.tau  = beta.tau,
                              beta.nu   = beta.nu,
-                             mu.iota.m = mu.iota.m, 
-                             mu.iota.s = mu.iota.s, 
-                             mu.chi.m  = mu.chi.m, 
-                             mu.chi.s  = mu.chi.s  
+                             beta.iota.m = mu.iota.m, 
+                             beta.iota.s = mu.iota.s, 
+                             beta.chi.m  = mu.chi.m, 
+                             beta.chi.s  = mu.chi.s  
                              ))
+    
+    true.b <- overdispersion
+    p.tau.a <- c()
+    p.nu.a <- c()
+    mu.iota.m.a <- c()
+    mu.iota.s.a <- c()
+    mu.chi.s.a <- c()
+    mu.chi.m.a <- c()
+    for(i in 1:n){
+        p.tau.a[i] <- (p.tau[i]*(true.b - 2) + 1)/(1 - p.tau[i])
+        p.nu.a[i] <- (p.nu[i]*(true.b - 2) + 1)/(1 - p.nu[i])
+        mu.iota.m.a[i] <- (mu.iota.m*(true.b - 2) + 1)/(1 - mu.iota.m)
+        mu.iota.s.a[i] <- (mu.iota.s*(true.b - 2) + 1)/(1 - mu.iota.s)
+        mu.chi.m.a[i] <- (mu.chi.m*(true.b - 2) + 1)/(1 - mu.chi.m)
+        mu.chi.s.a[i] <- (mu.chi.s*(true.b - 2) + 1)/(1 - mu.chi.s)
+    }
+    p.tau.d <- c()
+    p.nu.d <- c()
+    p.iota.m <- c()
+    p.iota.s <- c()
+    p.chi.m <- c()
+    p.chi.s <- c()
+    for(i in 1:n){
+        p.tau.d[i] <- rbeta(1,p.tau.a[i],true.b)
+        p.nu.d[i] <- rbeta(1,p.nu.a[i],true.b)
+        p.iota.m[i] <- truncdist::rtrunc(n = 1, spec = "beta", a = 0, b = .7, shape1 = mu.iota.m.a[i], shape2 = true.b)
+        p.iota.s[i] <- truncdist::rtrunc(n = 1, spec = "beta", a = 0, b = .7, shape1 = mu.iota.s.a[i], shape2 = true.b)
+        p.chi.m[i] <- truncdist::rtrunc(n = 1, spec = "beta", a = .7, b = 1, shape1 = mu.chi.m.a[i], shape2 = true.b)
+        p.chi.s[i] <- truncdist::rtrunc(n = 1, spec = "beta", a = .7, b = 1, shape1 = mu.chi.s.a[i], shape2 = true.b)
+    }
     
     ## data
     ## ----
@@ -478,12 +512,12 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
     tau = nu = iota.m = chi.m = iota.s = chi.s = NA
     for (i in 1:n)
     {
-        tau[i]    = rmutil::rbetabinom(n = 1, size = N[i], m = p.tau[i], s = overdispersion)  /N[i]
-        nu[i]     = rmutil::rbetabinom(n = 1, size = N[i], m = p.nu[i], s = overdispersion)  /N[i]
-        iota.m[i] = rmutil::rbetabinom(n = 1, size = N[i], m = mu.iota.m, s = overdispersion)  /N[i]
-        chi.m[i]  = rmutil::rbetabinom(n = 1, size = N[i], m = mu.chi.m, s = overdispersion)  /N[i]
-        iota.s[i] = rmutil::rbetabinom(n = 1, size = N[i], m = mu.iota.s, s = overdispersion)  /N[i]
-        chi.s[i]  = rmutil::rbetabinom(n = 1, size = N[i], m = mu.chi.s, s = overdispersion)  /N[i]
+        tau[i]    = rbinom(n = 1, size = N[i], prob = p.tau.d[i])  /N[i]
+        nu[i]     = rbinom(n = 1, size = N[i], prob = p.nu.d[i])  /N[i]
+        iota.m[i] = rbinom(n = 1, size = N[i], prob = p.iota.m[i])  /N[i]
+        iota.s[i]  = rbinom(n = 1, size = N[i], prob = p.iota.s[i])  /N[i]
+        chi.m[i] = rbinom(n = 1, size = N[i], prob = p.chi.m[i])  /N[i]
+        chi.s[i]  = rbinom(n = 1, size = N[i], prob = p.chi.s[i])  /N[i]
     }
     latent     = list(z=z,tau=tau,nu=nu,iota.m=iota.m,chi.m=chi.m,iota.s=iota.s,chi.s=chi.s)
     ## observed
@@ -509,6 +543,7 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
 }
 
 ## {{{ docs }}}
+
 #' Simulate Election data
 #'
 #' This function simulates data sets from the Election Forensics Finite Mixture models. 
@@ -523,10 +558,12 @@ simulate_bbl <- function(n, nCov, model, pi, overdispersion = 10)
 #' @return The function returns a list with a data frame with the simulated data and a sublist with the parameters used to generate the data
 #'
 #' @export
+
 ## }}}
 ef_simulateData <- function(n=2000,  nCov=0, nCov.fraud=0, model, pi=NULL, overdispersion = 10)
 {
     if(model=='bl')         {return(simulate_bl(n,nCov,nCov.fraud,model,pi))}
+    if(model=='bl_none')    {return(simulate_bl_no_local_fraud_cov(n, nCov, model, pi))}
     ## if(model=='bl_fc')      {return(simulate_bl_fc(n,nCov,model,pi))}
     if(model=='rn_no_alpha'){return(simulate_rn_no_alpha(n,nCov,model,pi))}
     if(model=='rn')         {return(simulate_rn(n,nCov,model,pi))}

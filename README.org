@@ -70,4 +70,3 @@ ef_plot(samples, plots = c("Abstention and Vote",  "Fraud Probability" ))
 ef_plot(samples, plots = c( "Fraud Probability" ))
 #+END_SRC
 
-* 

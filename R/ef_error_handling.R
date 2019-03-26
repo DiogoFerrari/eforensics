@@ -9,7 +9,7 @@ ef_check_jags <- function()
 
 check_mcmc <- function(mcmc)
 {
-    if ("n.chains" %in% names(mcmc) & mcmc$n.chains<2) {stop("\n\nNumber of chains (n.chains) must be larger than 1. \n\n")}
+    if ("n.chains" %in% names(mcmc) & mcmc$n.chains<1) {stop("\n\nNumber of chains (n.chains) must be larger than 1. \n\n")}
     if (!"n.chains" %in% names(mcmc)) {stop("\n\nYou must include number of chains (n.chains) in the list provided in the mcmc parameter of the function eforensics(). It must must larger than one \n\n")}
     if (!"n.iter"   %in% names(mcmc)) {stop("\n\nYou must include number of iterations (n.iter) in the list provided in the mcmc parameter of the function eforensics() \n\n")}
     if (!"burn.in"  %in% names(mcmc)) {stop("\n\nYou must include the burn-in iterations (burn.in) in the list provided in the mcmc parameter of the function eforensics() \n\n")}

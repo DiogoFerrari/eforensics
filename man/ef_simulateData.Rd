@@ -4,8 +4,8 @@
 \alias{ef_simulateData}
 \title{Simulate Election data}
 \usage{
-ef_simulateData(n = 2000, nCov = 0, nCov.fraud = 0, model, pi = NULL,
-  overdispersion = 10)
+ef_simulateData(n = 2000, nCov = 0, nCov.fraud = 0, model,
+  pi = NULL, overdispersion = 10)
 }
 \arguments{
 \item{n}{integer, the number of sample points representing observations of election units (e.g., precinct, ballot boxes)}
